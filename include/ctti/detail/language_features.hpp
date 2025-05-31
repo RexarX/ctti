@@ -1,18 +1,12 @@
 #ifndef CTTI_LANGUAGE_FEATURES_HPP
 #define CTTI_LANGUAGE_FEATURES_HPP
 
-#ifdef __cpp_variable_templates
-#define CTTI_HAS_VARIABLE_TEMPLATES
-#endif // __cpp_variable_templates
+// C++23 is the minimum requirement now
+#define CTTI_HAS_VARIABLE_TEMPLATES 1
+#define CTTI_HAS_CONSTEXPR_PRETTY_FUNCTION 1
 
-#define CTTI_HAS_CONSTEXPR_PRETTY_FUNCTION
+#if defined(__clang__) || (defined(__GNUC__) && __GNUC__ >= 9)
+#define CTTI_HAS_ENUM_AWARE_PRETTY_FUNCTION 1
+#endif
 
-#if defined(__GCC__) && __GCC__ < 5
-#undef CTTI_HAS_CONSTEXPR_PRETTY_FUNCTION
-#endif // GCC 4.x
-
-#ifdef __clang__
-#define CTTI_HAS_ENUM_AWARE_PRETTY_FUNCTION
-#endif // __clang__
-
-#endif // CTTI_LANGUAGE_FEATURES_HPP
+#endif  // CTTI_LANGUAGE_FEATURES_HPP

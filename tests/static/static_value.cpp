@@ -1,5 +1,6 @@
-#include <ctti/static_value.hpp>
 #include "static_test.hpp"
+
+#include <ctti/static_value.hpp>
 
 EXPECT_EQ(CTTI_STATIC_VALUE(42)::value, 42);
 EXPECT_EQ(CTTI_STATIC_VALUE(42){}.get(), 42);

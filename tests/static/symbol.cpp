@@ -1,18 +1,15 @@
-#include <ctti/symbol.hpp>
-#include <ctti/hash_literal.hpp>
 #include "static_test.hpp"
 
-struct Foo
-{
-    int foobar;
-    int getter() const;
-    void setter(int i);
+#include <ctti/hash_literal.hpp>
+#include <ctti/symbol.hpp>
+
+struct Foo {
+  int foobar = 0;
+  int getter() const;
+  void setter(int i);
 };
 
-enum class Enum
-{
-    Value
-};
+enum class Enum { Value };
 
 CTTI_DEFINE_SYMBOL(foobar);
 CTTI_DEFINE_SYMBOL(Value);

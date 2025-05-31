@@ -1,3 +1,6 @@
 {
-  "name": "ctti"
+  "name": "ctti",
+  "version": "1.0.0",
+  "description": "Compile Time Type Information for C++23",
+  "homepage": "https://github.com/RexarX/ctti"
 }

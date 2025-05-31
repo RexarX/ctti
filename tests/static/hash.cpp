@@ -1,5 +1,6 @@
-#include <ctti/detail/hash.hpp>
 #include "static_test.hpp"
+
+#include <ctti/detail/hash.hpp>
 
 using namespace ctti::detail;
 /*

@@ -1,77 +1,69 @@
 #ifndef CTTI_DETAIL_NAMEFILTERS_HPP
 #define CTTI_DETAIL_NAMEFILTERS_HPP
 
-#include "cstring.hpp"
+#include <string_view>
 
-namespace ctti
-{
+namespace ctti::detail {
 
-namespace detail
-{
-
-constexpr ctti::detail::cstring filter_prefix(const ctti::detail::cstring& str, const ctti::detail::cstring& prefix)
-{
-    return str.size() >= prefix.size() ? (str(0, prefix.size()) == prefix ? str(prefix.size(), str.size()) : str) : str;
+constexpr std::string_view filter_prefix(std::string_view str, std::string_view prefix) noexcept {
+  if (str.size() >= prefix.size() && str.starts_with(prefix)) {
+    return str.substr(prefix.size());
+  }
+  return str;
 }
 
-constexpr ctti::detail::cstring leftpad(const ctti::detail::cstring& str)
-{
-    return (str.size() > 0 && str[0] == ' ') ? leftpad(str(1, str.size())) : str;
+constexpr std::string_view leftpad(std::string_view str) noexcept {
+  if (!str.empty() && str.front() == ' ') {
+    return leftpad(str.substr(1));
+  }
+  return str;
 }
 
-constexpr ctti::detail::cstring filter_class(const ctti::detail::cstring& type_name)
-{
-    return leftpad(filter_prefix(leftpad(type_name), "class"));
+constexpr std::string_view filter_class(std::string_view type_name) noexcept {
+  return leftpad(filter_prefix(leftpad(type_name), "class"));
 }
 
-constexpr ctti::detail::cstring filter_struct(const ctti::detail::cstring& type_name)
-{
-    return leftpad(filter_prefix(leftpad(type_name), "struct"));
+constexpr std::string_view filter_struct(std::string_view type_name) noexcept {
+  return leftpad(filter_prefix(leftpad(type_name), "struct"));
 }
 
-constexpr ctti::detail::cstring filter_typename_prefix(const ctti::detail::cstring& type_name)
-{
-    return filter_struct(filter_class(type_name));
+constexpr std::string_view filter_typename_prefix(std::string_view type_name) noexcept {
+  return filter_struct(filter_class(type_name));
 }
 
-namespace
-{
+// Helper functions to find substrings in string_view
+constexpr std::size_t find_ith(std::string_view name, std::string_view substring, std::size_t index) {
+  std::size_t pos = 0;
+  std::size_t found = 0;
 
-constexpr const char* find_ith_impl(const ctti::detail::cstring& name, const ctti::detail::cstring& substring, const char* res, std::size_t i, bool infinite = false)
-{
-    return (name.length() >= substring.length()) ?
-        ((name(0, substring.length()) == substring) ?
-            ((i == 0) ?
-                name.begin()
-            :
-                find_ith_impl(name(substring.length(), name.length()), substring, name.begin(), i - 1, infinite))
-        :
-            find_ith_impl(name(1, name.length()), substring, res, i, infinite))
-        :
-            (!infinite) ? name.end() : res;
+  while (pos < name.size()) {
+    const auto next_pos = name.find(substring, pos);
+    if (next_pos == std::string_view::npos) {
+      return std::string_view::npos;
+    }
+
+    if (found == index) return next_pos;
+
+    ++found;
+    pos = next_pos + substring.size();
+  }
+
+  return std::string_view::npos;
 }
 
+constexpr std::string_view filter_enum_value(std::string_view name) noexcept {
+  // Check if it looks like an enum value format "(Enum)N"
+  const auto open_paren = name.find('(');
+  const auto close_paren = name.find(')', open_paren);
+
+  if (open_paren != std::string_view::npos && close_paren != std::string_view::npos && open_paren < close_paren) {
+    // Return just enum type name and value without parentheses
+    return name.substr(open_paren + 1, close_paren - open_paren - 1);
+  }
+
+  return name;
 }
 
-constexpr const char* find_ith(const ctti::detail::cstring& name, const ctti::detail::cstring& substring, std::size_t i)
-{
-    return find_ith_impl(name, substring, name.end(), i);
-}
+}  // namespace ctti::detail
 
-constexpr const char* find_last(const ctti::detail::cstring& name, const ctti::detail::cstring& substring)
-{
-    return find_ith_impl(name, substring, name.end(), -1, true);
-}
-
-constexpr const char* find(const ctti::detail::cstring& name, const ctti::detail::cstring& substring)
-{
-    return find_ith(name, substring, 0);
-}
-
-
-
-}
-
-}
-
-#endif // CTTI_DETAIL_NAMEFILTERS_HPP
+#endif  // CTTI_DETAIL_NAMEFILTERS_HPP

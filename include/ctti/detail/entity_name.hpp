@@ -1,46 +1,48 @@
 #ifndef CTTI_DETAIL_ENTITY_NAME_HPP
 #define CTTI_DETAIL_ENTITY_NAME_HPP
 
-#include "cstring.hpp"
+#include <string_view>
 
-namespace ctti
-{
+namespace ctti::detail {
 
-namespace detail
-{
-
-class entity_name
-{
+class entity_name {
 public:
-    constexpr entity_name(const ctti::detail::cstring& str) :
-        _str{str}
-    {}
+  constexpr entity_name(std::string_view str) noexcept : str_{str} {}
 
-    constexpr ctti::detail::cstring str() const
-    {
-        return _str;
-    }
+  constexpr std::string_view str() const noexcept { return str_; }
 
-    constexpr ctti::detail::cstring operator[](std::size_t i) const
-    {
-        return colon_scan(_str.begin(), _str.end(), i);
-    }
+  constexpr std::string_view operator[](std::size_t i) const { return get_qualifier(i); }
 
 private:
-    ctti::detail::cstring _str;
+  std::string_view str_;
 
-    constexpr ctti::detail::cstring colon_scan(const char* begin, const char* end, std::size_t i) const
-    {
-        return (begin == end) ? {begin, end} :
-            (i == 0) ? {begin, end}
-            (colon_count == 0 && *begin == ':') ? colon_scan(++begin, end, i, ++colon_count) :
-            (colon_count == 1 && *begin == ':') ? colon_scan(++begin, end, i - 1, 0)
-            (
+  constexpr std::string_view get_qualifier(std::size_t i) const {
+    if (str_.empty()) return {};
+
+    std::size_t start = 0;
+    std::size_t current_qualifier = 0;
+
+    for (std::size_t pos = 0; pos < str_.size(); ++pos) {
+      if (pos + 1 < str_.size() && str_[pos] == ':' && str_[pos + 1] == ':') {
+        if (current_qualifier == i) {
+          return str_.substr(start, pos - start);
+        }
+
+        start = pos + 2;
+        ++pos;  // Skip the second colon
+        ++current_qualifier;
+      }
     }
+
+    // Handle the last part (after the last ::)
+    if (current_qualifier == i) {
+      return str_.substr(start);
+    }
+
+    return {};
+  }
 };
 
-}
+}  // namespace ctti::detail
 
-}
-
-#endif // CTTI_DETAIL_ENTITY_NAME_HPP
+#endif  // CTTI_DETAIL_ENTITY_NAME_HPP
