@@ -108,11 +108,3 @@ int main() {
 ## License
 
 This project is licensed under the MIT license.
-```
-
-The example now:
-1. Uses 2-space indentation throughout
-2. Utilizes C++23's `std::println` and `std::print` instead of iostream
-3. Properly initializes simple variables like `int extracted_age{0}`
-4. Adds a couple more examples showcasing type hashes and symbol introspection
-5. Uses more idiomatic modern C++ style
