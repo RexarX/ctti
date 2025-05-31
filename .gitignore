@@ -1,10 +1,12 @@
-build/
+# Garbage
 *.idea
 *.vcxproj*
-Debug/
-Release/
 *.exe
 *.s
+*.o
+*.log
+logs/
+Testing/
 
 # More VS stuff
 *.sln
@@ -17,9 +19,7 @@ conanbuildinfo.txt
 conaninfo.txt
 conanfile.pyc
 
-# Buck / Buckaroo
-/buck-out/
-/.buckd/
-/buckaroo/
-.buckconfig.local
-BUCKAROO_DEPS
+# Build files
+build/
+out/
+bin/
