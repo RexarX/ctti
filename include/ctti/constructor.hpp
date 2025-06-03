@@ -60,17 +60,11 @@ struct constructor_info {
     return detail::ConstructorInfo<T>::IsDefaultConstructible();
   }
 
-  static constexpr bool is_copy_constructible() noexcept {
-    return detail::ConstructorInfo<T>::IsCopyConstructible();
-  }
+  static constexpr bool is_copy_constructible() noexcept { return detail::ConstructorInfo<T>::IsCopyConstructible(); }
 
-  static constexpr bool is_move_constructible() noexcept {
-    return detail::ConstructorInfo<T>::IsMoveConstructible();
-  }
+  static constexpr bool is_move_constructible() noexcept { return detail::ConstructorInfo<T>::IsMoveConstructible(); }
 
-  static constexpr bool is_aggregate() noexcept {
-    return detail::ConstructorInfo<T>::IsAggregate();
-  }
+  static constexpr bool is_aggregate() noexcept { return detail::ConstructorInfo<T>::IsAggregate(); }
 };
 
 template <typename T>

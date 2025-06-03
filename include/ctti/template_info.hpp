@@ -19,9 +19,7 @@ struct template_info {
   static constexpr bool is_template_instantiation = detail::TemplateInfo<T>::kIsTemplateInstantiation;
   static constexpr std::size_t parameter_count = detail::TemplateInfo<T>::kParameterCount;
 
-  static constexpr std::string_view name() noexcept {
-    return detail::TemplateInfo<T>::GetName();
-  }
+  static constexpr std::string_view name() noexcept { return detail::TemplateInfo<T>::GetName(); }
 };
 
 // Specialization for regular template instantiations (template <typename...>)
@@ -31,9 +29,7 @@ struct template_info<Template<Args...>> {
   static constexpr bool is_template_instantiation = true;
   static constexpr std::size_t parameter_count = sizeof...(Args);
 
-  static constexpr std::string_view name() noexcept {
-    return detail::TemplateInfo<Template<Args...>>::GetName();
-  }
+  static constexpr std::string_view name() noexcept { return detail::TemplateInfo<Template<Args...>>::GetName(); }
 
   template <std::size_t I>
     requires(I < parameter_count)
@@ -62,9 +58,7 @@ struct template_info<Template<Args...>> {
   static constexpr bool is_template_instantiation = true;
   static constexpr std::size_t parameter_count = sizeof...(Args);
 
-  static constexpr std::string_view name() noexcept {
-    return detail::TemplateInfo<Template<Args...>>::GetName();
-  }
+  static constexpr std::string_view name() noexcept { return detail::TemplateInfo<Template<Args...>>::GetName(); }
 
   template <std::size_t I>
     requires(I < parameter_count)
@@ -80,9 +74,7 @@ struct template_info<Template<T, Value>> {
   static constexpr bool is_template_instantiation = true;
   static constexpr std::size_t parameter_count = 2;
 
-  static constexpr std::string_view name() noexcept {
-    return detail::TemplateInfo<Template<T, Value>>::GetName();
-  }
+  static constexpr std::string_view name() noexcept { return detail::TemplateInfo<Template<T, Value>>::GetName(); }
 
   using type_parameter = T;
   static constexpr auto value_parameter = Value;

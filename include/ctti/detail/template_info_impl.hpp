@@ -5,9 +5,9 @@
 #include <ctti/detail/name_impl.hpp>
 #include <ctti/type_tag.hpp>
 
+#include <concepts>
 #include <string>
 #include <string_view>
-#include <concepts>
 #include <type_traits>
 
 namespace ctti::detail {
@@ -23,9 +23,7 @@ struct TemplateInfo {
   static constexpr bool kIsTemplateInstantiation = false;
   static constexpr std::size_t kParameterCount = 0;
 
-  static constexpr std::string_view GetName() noexcept {
-    return NameOfImpl<T>::Apply();
-  }
+  static constexpr std::string_view GetName() noexcept { return NameOfImpl<T>::Apply(); }
 };
 
 template <>
@@ -34,9 +32,7 @@ struct TemplateInfo<std::string> {
   static constexpr bool kIsTemplateInstantiation = false;
   static constexpr std::size_t kParameterCount = 0;
 
-  static constexpr std::string_view GetName() noexcept {
-    return "std::string";
-  }
+  static constexpr std::string_view GetName() noexcept { return "std::string"; }
 };
 
 template <>
@@ -45,9 +41,7 @@ struct TemplateInfo<std::string_view> {
   static constexpr bool kIsTemplateInstantiation = false;
   static constexpr std::size_t kParameterCount = 0;
 
-  static constexpr std::string_view GetName() noexcept {
-    return "std::string_view";
-  }
+  static constexpr std::string_view GetName() noexcept { return "std::string_view"; }
 };
 
 template <template <typename...> class Template, typename... Args>
@@ -62,9 +56,7 @@ struct TemplateInfo<Template<Args...>> {
     requires(I < kParameterCount)
   using Parameter = PackGetType<I, Args...>;
 
-  static constexpr std::string_view GetName() noexcept {
-    return NameOfImpl<Template<Args...>>::Apply();
-  }
+  static constexpr std::string_view GetName() noexcept { return NameOfImpl<Template<Args...>>::Apply(); }
 
   template <std::size_t I>
     requires(I < kParameterCount)
@@ -90,9 +82,7 @@ struct TemplateInfo<Template<Args...>> {
   static constexpr bool kIsTemplateInstantiation = true;
   static constexpr std::size_t kParameterCount = sizeof...(Args);
 
-  static constexpr std::string_view GetName() noexcept {
-    return NameOfImpl<Template<Args...>>::Apply();
-  }
+  static constexpr std::string_view GetName() noexcept { return NameOfImpl<Template<Args...>>::Apply(); }
 
   using parameters = TypeList<SizeType<static_cast<std::size_t>(Args)>...>;
 
@@ -110,9 +100,7 @@ struct TemplateInfo<Template<T, Value>> {
   static constexpr bool kIsTemplateInstantiation = true;
   static constexpr std::size_t kParameterCount = 2;
 
-  static constexpr std::string_view GetName() noexcept {
-    return NameOfImpl<Template<T, Value>>::Apply();
-  }
+  static constexpr std::string_view GetName() noexcept { return NameOfImpl<Template<T, Value>>::Apply(); }
 
   using type_parameter = T;
   static constexpr auto kValueParameter = Value;

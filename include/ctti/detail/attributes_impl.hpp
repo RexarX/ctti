@@ -34,9 +34,7 @@ concept AttributeType = requires {
 } || requires {
   typename T::type;
   T::name;
-} || requires {
-  T::name;
-};
+} || requires { T::name; };
 
 template <typename T>
 struct TagAttribute {
@@ -61,19 +59,19 @@ struct NamedAttribute {
   namespace ctti_symbols {                                                              \
   struct name {                                                                         \
     static constexpr std::string_view symbol = CTTI_PP_STR(name);                       \
-    static constexpr std::uint64_t hash = ctti::detail::Fnv1aHash(symbol);             \
+    static constexpr std::uint64_t hash = ctti::detail::Fnv1aHash(symbol);              \
     using attributes = ctti::detail::TypeList<__VA_ARGS__>;                             \
                                                                                         \
     constexpr name() noexcept = default;                                                \
                                                                                         \
     template <typename T>                                                               \
     static constexpr bool has_attribute() noexcept {                                    \
-      return ctti::detail::Contains<T, attributes>::value;                             \
+      return ctti::detail::Contains<T, attributes>::value;                              \
     }                                                                                   \
                                                                                         \
     template <auto Value>                                                               \
     static constexpr bool has_attribute_value() noexcept {                              \
-      return ctti::detail::Contains<ctti::attribute<Value>, attributes>::value;        \
+      return ctti::detail::Contains<ctti::attribute<Value>, attributes>::value;         \
     }                                                                                   \
                                                                                         \
     template <typename T, bool IsEnum = ctti::detail::EnumType<T>, typename = void>     \

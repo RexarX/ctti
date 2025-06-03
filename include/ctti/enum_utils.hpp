@@ -27,13 +27,9 @@ struct enum_info {
     return detail::EnumInfo<E>::template UnderlyingValue<Value>();
   }
 
-  static constexpr std::string_view name() noexcept {
-    return detail::EnumInfo<E>::Name();
-  }
+  static constexpr std::string_view name() noexcept { return detail::EnumInfo<E>::Name(); }
 
-  static constexpr bool is_scoped() noexcept {
-    return detail::EnumInfo<E>::IsScoped();
-  }
+  static constexpr bool is_scoped() noexcept { return detail::EnumInfo<E>::IsScoped(); }
 
   template <std::convertible_to<underlying_type> T>
   static constexpr std::optional<E> from_underlying(T value) noexcept {

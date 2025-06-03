@@ -69,21 +69,13 @@ struct ConstructorInfo {
     return false;
   }
 
-  static constexpr bool IsDefaultConstructible() noexcept {
-    return DefaultConstructible<T>;
-  }
+  static constexpr bool IsDefaultConstructible() noexcept { return DefaultConstructible<T>; }
 
-  static constexpr bool IsCopyConstructible() noexcept {
-    return CopyConstructible<T>;
-  }
+  static constexpr bool IsCopyConstructible() noexcept { return CopyConstructible<T>; }
 
-  static constexpr bool IsMoveConstructible() noexcept {
-    return MoveConstructible<T>;
-  }
+  static constexpr bool IsMoveConstructible() noexcept { return MoveConstructible<T>; }
 
-  static constexpr bool IsAggregate() noexcept {
-    return AggregateType<T>;
-  }
+  static constexpr bool IsAggregate() noexcept { return AggregateType<T>; }
 };
 
 template <typename T, typename... Args>

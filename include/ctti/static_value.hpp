@@ -10,6 +10,7 @@ using static_value = detail::StaticValue<T, Value>;
 
 }  // namespace ctti
 
-#define CTTI_STATIC_VALUE(x) ctti::static_value<std::remove_cvref_t<decltype(x)>, x>{}
+#define CTTI_STATIC_VALUE(x) \
+  ctti::static_value<std::remove_cvref_t<decltype(x)>, x> {}
 
 #endif  // CTTI_STATIC_VALUE_HPP

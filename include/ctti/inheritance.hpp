@@ -37,9 +37,7 @@ struct inheritance_info {
     return detail::InheritanceInfo<Derived, Base>::DerivedName();
   }
 
-  static constexpr std::string_view base_name() noexcept {
-    return detail::InheritanceInfo<Derived, Base>::BaseName();
-  }
+  static constexpr std::string_view base_name() noexcept { return detail::InheritanceInfo<Derived, Base>::BaseName(); }
 };
 
 template <typename T, typename... Bases>
@@ -74,9 +72,7 @@ struct polymorphism_info {
 
   using type = T;
 
-  static constexpr std::string_view name() noexcept {
-    return detail::PolymorphismInfo<T>::Name();
-  }
+  static constexpr std::string_view name() noexcept { return detail::PolymorphismInfo<T>::Name(); }
 };
 
 template <typename Derived, typename Base>

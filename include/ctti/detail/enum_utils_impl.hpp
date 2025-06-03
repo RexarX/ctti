@@ -36,13 +36,9 @@ struct EnumInfo {
     return static_cast<underlying_type>(Value);
   }
 
-  static constexpr std::string_view Name() noexcept {
-    return ctti::name_of<E>();
-  }
+  static constexpr std::string_view Name() noexcept { return ctti::name_of<E>(); }
 
-  static constexpr bool IsScoped() noexcept {
-    return ScopedEnum<E>;
-  }
+  static constexpr bool IsScoped() noexcept { return ScopedEnum<E>; }
 
   template <std::convertible_to<underlying_type> T>
   static constexpr std::optional<E> FromUnderlying(T value) noexcept {
@@ -61,9 +57,7 @@ struct EnumValueList {
   using values = TypeList<SizeType<static_cast<std::size_t>(Values)>...>;
   static constexpr std::size_t kCount = sizeof...(Values);
 
-  static constexpr std::array<E, kCount> ValueArray() noexcept {
-    return {Values...};
-  }
+  static constexpr std::array<E, kCount> ValueArray() noexcept { return {Values...}; }
 
   template <std::size_t I>
     requires(I < kCount)
@@ -82,9 +76,7 @@ struct EnumValueList {
     (call_f(SizeType<static_cast<std::size_t>(Values)>{}, Values), ...);
   }
 
-  static constexpr std::array<std::string_view, kCount> Names() noexcept {
-    return {ctti::name_of<E, Values>()...};
-  }
+  static constexpr std::array<std::string_view, kCount> Names() noexcept { return {ctti::name_of<E, Values>()...}; }
 };
 
 template <EnumType E, E Lhs, E Rhs>
