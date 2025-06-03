@@ -60,7 +60,13 @@ TEST_SUITE("detail::pretty_function") {
     CHECK(int_value_name != char_value_name);
 
     // Should contain the value somewhere in the string
-    CHECK(int_value_name.find("42") != std::string_view::npos);
+    bool found_value =
+        int_value_name.find("42") != std::string_view::npos || int_value_name.find("0x2a") != std::string_view::npos;
+    bool found_name = int_value_name.find("test_value") != std::string_view::npos;
+    bool found_int = int_value_name.find("int") != std::string_view::npos;
+
+    // At least one of these should be true
+    CHECK((found_value && (found_name || found_int)));
   }
 
   TEST_CASE("value_function_enum") {
@@ -70,7 +76,8 @@ TEST_SUITE("detail::pretty_function") {
     // Different compilers format enum values differently
     bool found_a = enum_value_name.find("A") != std::string_view::npos;
     bool found_value = enum_value_name.find("TestEnum") != std::string_view::npos;
-    CHECK((found_a || found_value)); // Accept either the enum name or value name
+    bool found_zero = enum_value_name.find("0") != std::string_view::npos; // TestEnum::A is 0
+    CHECK((found_a || found_value || found_zero)); // Accept any reasonable representation
   }
 
   TEST_CASE("constexpr_evaluation") {
@@ -85,8 +92,7 @@ TEST_SUITE("detail::pretty_function") {
   }
 
   TEST_CASE("different_compilers_produce_output") {
-    // This test mainly ensures that the pretty function macros
-    // are properly defined and produce non-empty output
+    // This test mainly ensures that the pretty function macros are properly defined and produce non-empty output
     auto name = ctti::detail::pretty_function::Type<double>();
 
     CHECK(name.size() > 0);

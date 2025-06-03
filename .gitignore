@@ -1,18 +1,19 @@
 # Garbage
-*.idea
-*.vcxproj*
 *.exe
 *.s
 *.o
 *.log
 logs/
 Testing/
+CMakeSettings.json
 
-# More VS stuff
+# IDE
 *.sln
 *.sdf
 *.opensdf
 *.vs*
+*.idea
+*.vcxproj*
 
 # conan.io stuff
 conanbuildinfo.txt

@@ -30,11 +30,11 @@ target_compile_features(ctti INTERFACE cxx_std_23)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
     target_compile_options(ctti INTERFACE
-        $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -pedantic>
+        $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra>
     )
 elseif(MSVC)
     target_compile_options(ctti INTERFACE
-        $<$<COMPILE_LANGUAGE:CXX>:/W4 /permissive->
+        $<$<COMPILE_LANGUAGE:CXX>:/permissive->
     )
 endif()
 

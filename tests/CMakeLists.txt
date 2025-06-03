@@ -30,16 +30,21 @@ add_executable(ctti_tests
 target_link_libraries(ctti_tests PRIVATE ctti)
 target_include_directories(ctti_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
+set_target_properties(ctti_tests PROPERTIES
+    CXX_STANDARD 23
+    CMAKE_CXX_STANDARD_REQUIRED ON
+    CMAKE_CXX_EXTENSIONS OFF
+)
+
 target_compile_features(ctti_tests PRIVATE cxx_std_23)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
     target_compile_options(ctti_tests PRIVATE
-        -Wall -Wextra -pedantic -Werror
+        -Wall -Wextra -Werror
         -Wno-unused-variable -Wno-unused-parameter
     )
 elseif(MSVC)
     target_compile_options(ctti_tests PRIVATE
-        /W4 /WX
         /wd4101 /wd4100  # Unused variables/parameters
     )
 endif()

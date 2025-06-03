@@ -12,8 +12,6 @@ struct TieTestStruct {
   double price = 99.99;
 };
 
-TieTestStruct obj1;
-
 CTTI_DEFINE_SYMBOL(value);
 CTTI_DEFINE_SYMBOL(name);
 CTTI_DEFINE_SYMBOL(price);
