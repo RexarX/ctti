@@ -193,6 +193,22 @@ find_package(ctti REQUIRED)
 target_link_libraries(your_target PRIVATE ctti::ctti)
 ```
 
+### CMake FetchContent
+
+```cmake
+include(FetchContent)
+
+FetchContent_Declare(
+    ctti
+    GIT_REPOSITORY https://github.com/RexarX/ctti
+    GIT_TAG main  # or specific version tag like "v1.0.0"
+)
+
+FetchContent_MakeAvailable(ctti)
+
+target_link_libraries(your_target PRIVATE ctti::ctti)
+```
+
 ### CPM.cmake
 
 ```cmake
