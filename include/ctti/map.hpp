@@ -1,56 +1,39 @@
 #ifndef CTTI_MAP_HPP
 #define CTTI_MAP_HPP
 
-#include <ctti/symbol.hpp>
+#include <ctti/detail/map_impl.hpp>
 
 namespace ctti {
 
-struct default_symbol_mapping_function {
-  constexpr default_symbol_mapping_function() noexcept = default;
-
-  template <typename Source, typename SourceSymbol, typename Sink, typename SinkSymbol>
-  void operator()(const Source& source, SourceSymbol, Sink& sink, SinkSymbol) const {
-    if constexpr (SourceSymbol::template is_member_of<Source>() && SinkSymbol::template is_member_of<Sink>()) {
-      ctti::set_member_value<SinkSymbol>(sink, ctti::get_member_value<SourceSymbol>(source));
-    }
-  }
-};
+using default_symbol_mapping_function = detail::DefaultSymbolMappingFunction;
 
 template <typename SourceSymbol, typename SinkSymbol, typename Source, typename Sink, typename Function>
-void map(const Source& source, Sink& sink, const Function& function) {
-  function(source, SourceSymbol(), sink, SinkSymbol());
+  requires std::invocable<Function, const Source&, SourceSymbol&&, Sink&, SinkSymbol&&>
+void map(const Source& source, Sink& sink, const Function& function) noexcept {
+  detail::Map<SourceSymbol, SinkSymbol>(source, sink, function);
 }
 
 template <typename SourceSymbol, typename SinkSymbol, typename Source, typename Sink>
-void map(const Source& source, Sink& sink) {
-  ctti::map<SourceSymbol, SinkSymbol>(source, sink, ctti::default_symbol_mapping_function());
+void map(const Source& source, Sink& sink) noexcept {
+  detail::Map<SourceSymbol, SinkSymbol>(source, sink);
 }
 
 template <typename SourceSymbol, typename SinkSymbol, typename Function = default_symbol_mapping_function>
-struct symbol_mapping {
-  constexpr symbol_mapping(Function function = {}) : function{function} {}
-
-  Function function;
-
-  template <typename Source, typename Sink>
-  void operator()(const Source& source, Sink& sink) const {
-    function(source, SourceSymbol(), sink, SinkSymbol());
-  }
-};
+using symbol_mapping = detail::SymbolMapping<SourceSymbol, SinkSymbol, Function>;
 
 template <typename SourceSymbol, typename SinkSymbol, typename Function>
-constexpr ctti::symbol_mapping<SourceSymbol, SinkSymbol, std::remove_cvref_t<Function>> mapping(Function&& function) {
-  return {std::forward<Function>(function)};
+constexpr auto make_mapping(Function&& function) noexcept {
+  return detail::MakeMapping<SourceSymbol, SinkSymbol>(std::forward<Function>(function));
 }
 
 template <typename SourceSymbol, typename SinkSymbol>
-constexpr ctti::symbol_mapping<SourceSymbol, SinkSymbol> mapping() {
-  return {ctti::default_symbol_mapping_function()};
+constexpr auto make_mapping() noexcept {
+  return detail::MakeMapping<SourceSymbol, SinkSymbol>();
 }
 
 template <typename Source, typename Sink, typename... Mappings>
-void map(const Source& source, Sink& sink, const Mappings&... mappings) {
-  (mappings(source, sink), ...);
+void map(const Source& source, Sink& sink, const Mappings&... mappings) noexcept {
+  detail::Map(source, sink, mappings...);
 }
 
 }  // namespace ctti

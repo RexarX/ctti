@@ -6,27 +6,25 @@
 
 namespace ctti::detail {
 
-using hash_t = std::uint64_t;
+using HashType = std::uint64_t;
 
-// FNV-1a hash parameters
-constexpr hash_t fnv_basis = 14695981039346656037ull;
-constexpr hash_t fnv_prime = 1099511628211ull;
+constexpr HashType kFnvBasis = 14695981039346656037ull;
+constexpr HashType kFnvPrime = 1099511628211ull;
 
-// FNV-1a 64-bit hash implementation for various inputs
-constexpr hash_t fnv1a_hash(std::string_view str, hash_t hash = fnv_basis) noexcept {
+constexpr HashType Fnv1aHash(std::string_view str, HashType hash = kFnvBasis) noexcept {
   for (char c : str) {
-    hash = (hash ^ static_cast<hash_t>(c)) * fnv_prime;
+    hash = (hash ^ static_cast<HashType>(c)) * kFnvPrime;
   }
   return hash;
 }
 
-constexpr hash_t fnv1a_hash(std::size_t n, const char* str, hash_t hash = fnv_basis) noexcept {
-  return n > 0 ? fnv1a_hash(n - 1, str + 1, (hash ^ static_cast<hash_t>(*str)) * fnv_prime) : hash;
+constexpr HashType Fnv1aHash(std::size_t n, const char* str, HashType hash = kFnvBasis) noexcept {
+  return n > 0 ? Fnv1aHash(n - 1, str + 1, (hash ^ static_cast<HashType>(*str)) * kFnvPrime) : hash;
 }
 
 template <std::size_t N>
-constexpr hash_t fnv1a_hash(const char (&array)[N]) noexcept {
-  return fnv1a_hash(std::string_view{array, N - 1});
+constexpr HashType Fnv1aHash(const char (&array)[N]) noexcept {
+  return Fnv1aHash(std::string_view{array, N - 1});
 }
 
 }  // namespace ctti::detail

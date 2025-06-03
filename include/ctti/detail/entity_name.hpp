@@ -5,42 +5,42 @@
 
 namespace ctti::detail {
 
-class entity_name {
+class EntityName {
 public:
-  constexpr entity_name(std::string_view str) noexcept : str_{str} {}
+  constexpr EntityName(std::string_view str) noexcept : str_(str) {}
 
-  constexpr std::string_view str() const noexcept { return str_; }
-
-  constexpr std::string_view operator[](std::size_t i) const { return get_qualifier(i); }
+  constexpr std::string_view GetStr() const noexcept { return str_; }
+  constexpr std::string_view operator[](std::size_t i) const noexcept { return GetQualifier(i); }
 
 private:
-  std::string_view str_;
-
-  constexpr std::string_view get_qualifier(std::size_t i) const {
+  constexpr std::string_view GetQualifier(std::size_t i) const noexcept {
     if (str_.empty()) return {};
 
     std::size_t start = 0;
     std::size_t current_qualifier = 0;
 
-    for (std::size_t pos = 0; pos < str_.size(); ++pos) {
+    for (std::size_t pos = 0; pos < str_.size();) {
       if (pos + 1 < str_.size() && str_[pos] == ':' && str_[pos + 1] == ':') {
         if (current_qualifier == i) {
           return str_.substr(start, pos - start);
         }
 
         start = pos + 2;
-        ++pos;  // Skip the second colon
+        pos += 2;
         ++current_qualifier;
+      } else {
+        ++pos;
       }
     }
 
-    // Handle the last part (after the last ::)
     if (current_qualifier == i) {
       return str_.substr(start);
     }
 
     return {};
   }
+
+  std::string_view str_;
 };
 
 }  // namespace ctti::detail

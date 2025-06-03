@@ -3,18 +3,20 @@
 
 #include <ctti/detail/hash.hpp>
 
+#include <array>
+#include <cstdint>
 #include <string_view>
 
-#ifdef CTI_HASH_LITERAL_NAMESPACE
+#ifdef CTTI_HASH_LITERAL_NAMESPACE
 namespace CTTI_HASH_LITERAL_NAMESPACE {
-#endif  // CTTI_HASH_LITERAL_NAMESPACE
+#endif
 
-constexpr std::uint64_t operator""_sh(const char* str, std::size_t length) {
-  return ctti::detail::fnv1a_hash(std::string_view{str, length});
+constexpr std::uint64_t operator""_sh(const char* str, std::size_t length) noexcept {
+  return ctti::detail::Fnv1aHash(std::string_view{str, length});
 }
 
 #ifdef CTTI_HASH_LITERAL_NAMESPACE
 }
-#endif  // CTTI_HASH_LITERAL_NAMESPACE
+#endif
 
 #endif  // CTTI_HASH_LITERAL_HPP

@@ -1,16 +1,19 @@
-from conans import ConanFile, CMake
-import os
+from conan import ConanFile
+from conan.tools.cmake import CMakeToolchain, CMake, cmake_layout
+from conan.tools.build import can_run
 
-version = os.getenv('CONAN_CTTI_VERSION', '0.0.1')
-user    = os.getenv('CONAN_CTTI_USER', 'Manu343726')
-channel = os.getenv('CONAN_CTTI_CHANNEL', 'testing')
+class CttiTestConan(ConanFile):
+    settings = "os", "compiler", "build_type", "arch"
 
-class TestCtti(ConanFile):
-    settings = 'os', 'compiler', 'build_type', 'arch'
-    requires = (
-        'ctti/{}@{}/{}'.format(version, user, channel)
-    )
-    generators = 'cmake'
+    def requirements(self):
+        self.requires(self.tested_reference_str)
+
+    def layout(self):
+        cmake_layout(self)
+
+    def generate(self):
+        tc = CMakeToolchain(self)
+        tc.generate()
 
     def build(self):
         cmake = CMake(self)
@@ -18,4 +21,6 @@ class TestCtti(ConanFile):
         cmake.build()
 
     def test(self):
-        self.run(os.path.join('.', 'bin', 'example'))
+        if can_run(self):
+            cmake = CMake(self)
+            cmake.test()

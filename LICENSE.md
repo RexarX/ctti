@@ -1,5 +1,6 @@
 The MIT License
 
+Copyright (c) 2025 Denis Plishko
 Copyright (c) 2015 Manuel Sánchez
 
 Permission is hereby granted, free of charge, to any person obtaining a copy

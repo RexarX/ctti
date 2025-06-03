@@ -1,59 +1,52 @@
 cmake_minimum_required(VERSION 3.24)
-project(ctti VERSION 0.1.0 LANGUAGES CXX)
 
-option(CTTI_BUILD_TESTS "Build ctti feature tests" OFF)
-option(CTTI_BUILD_EXAMPLES "Build ctti examples" OFF)
+project(ctti
+    VERSION 1.0.0
+    DESCRIPTION "Compile Time Type Introspection library"
+    HOMEPAGE_URL "https://github.com/RexarX/ctti"
+    LANGUAGES CXX
+)
+
+if(PROJECT_IS_TOP_LEVEL)
+    set(CMAKE_CXX_STANDARD 23)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+    set(CMAKE_CXX_EXTENSIONS OFF)
+endif()
+
+option(CTTI_BUILD_TESTS "Build CTTI tests" ${PROJECT_IS_TOP_LEVEL})
+option(CTTI_BUILD_EXAMPLES "Build CTTI examples" ${PROJECT_IS_TOP_LEVEL})
+option(CTTI_INSTALL "Install CTTI" ${PROJECT_IS_TOP_LEVEL})
+option(CTTI_USE_CPM "Use CPM for dependencies" ${PROJECT_IS_TOP_LEVEL})
 
 add_library(ctti INTERFACE)
-target_compile_features(ctti INTERFACE cxx_std_23)
+add_library(ctti::ctti ALIAS ctti)
+
 target_include_directories(ctti INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
 
+target_compile_features(ctti INTERFACE cxx_std_23)
+
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
     target_compile_options(ctti INTERFACE
-        $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -pedantic>)
+        $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -pedantic>
+    )
 elseif(MSVC)
     target_compile_options(ctti INTERFACE
-        $<$<COMPILE_LANGUAGE:CXX>:/W4>)
+        $<$<COMPILE_LANGUAGE:CXX>:/W4 /permissive->
+    )
 endif()
 
-include(cmake/vs_source_groups.cmake)
+if(CTTI_USE_CPM)
+    include(cmake/CPM.cmake)
+endif()
 
-include(GNUInstallDirs)
-install(TARGETS ctti
-    EXPORT ctti-targets
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
-
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-
-install(EXPORT ctti-targets
-    FILE ctti-targets.cmake
-    NAMESPACE ctti::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ctti
-)
-
-include(CMakePackageConfigHelpers)
-write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/ctti-config-version.cmake"
-    VERSION ${CMAKE_PROJECT_VERSION}
-    COMPATIBILITY SameMajorVersion
-)
-
-configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ctti-config.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/ctti-config.cmake"
-    @ONLY
-)
-
-install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/ctti-config.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/ctti-config-version.cmake"
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ctti
-)
+if(CMAKE_GENERATOR MATCHES "Visual Studio")
+    include(cmake/vs_source_groups.cmake)
+    generate_vs_source_groups("Header Files" "${CMAKE_CURRENT_SOURCE_DIR}/include" CTTI_HEADERS)
+    target_sources(ctti INTERFACE ${CTTI_HEADERS})
+endif()
 
 if(CTTI_BUILD_TESTS)
     enable_testing()
@@ -62,4 +55,8 @@ endif()
 
 if(CTTI_BUILD_EXAMPLES)
     add_subdirectory(examples)
+endif()
+
+if(CTTI_INSTALL)
+    include(cmake/install.cmake)
 endif()

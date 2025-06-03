@@ -1,116 +1,61 @@
 #ifndef CTTI_TYPE_ID_HPP
 #define CTTI_TYPE_ID_HPP
 
-#include <ctti/detail/hash.hpp>
-#include <ctti/nameof.hpp>
-
-#include <compare>
-#include <functional>
-#include <string_view>
-
-#ifdef CTTI_DEBUG_ID_FUNCTIONS
-#include <iostream>
-#include <string>
-
-#ifndef CTTI_CONSTEXPR_ID
-#define CTTI_CONSTEXPR_ID
-#endif
-#else
-#ifndef CTTI_CONSTEXPR_ID
-#define CTTI_CONSTEXPR_ID constexpr
-#endif
-#endif
+#include <ctti/detail/type_id_impl.hpp>
 
 namespace ctti {
 
-struct type_id_t {
-  constexpr type_id_t() noexcept = default;
-  constexpr type_id_t(std::string_view name) noexcept : name_{name} {}
+struct type_id {
+  constexpr type_id() noexcept = default;
+  constexpr explicit type_id(std::string_view name) noexcept : impl_(name) {}
+  constexpr type_id(const detail::TypeId& impl) noexcept : impl_(impl) {}
 
-  constexpr detail::hash_t hash() const noexcept { return detail::fnv1a_hash(name_); }
+  constexpr std::uint64_t hash() const noexcept { return impl_.GetHash(); }
+  constexpr std::string_view name() const noexcept { return impl_.GetName(); }
 
-  constexpr std::string_view name() const noexcept { return name_; }
-
-  friend constexpr bool operator==(const type_id_t& lhs, const type_id_t& rhs) noexcept {
-    return lhs.hash() == rhs.hash();
-  }
-
-  friend constexpr std::strong_ordering operator<=>(const type_id_t& lhs, const type_id_t& rhs) noexcept {
-    return lhs.name() <=> rhs.name();
-  }
+  constexpr auto operator<=>(const type_id&) const noexcept = default;
+  constexpr bool operator==(const type_id&) const noexcept = default;
 
 private:
-  std::string_view name_ = "void";
+  detail::TypeId impl_;
 };
 
-struct unnamed_type_id_t {
-  constexpr unnamed_type_id_t(const detail::hash_t hash) noexcept : hash_{hash} {}
-  constexpr unnamed_type_id_t(const type_id_t& id) noexcept : hash_{id.hash()} {}
+struct type_index {
+  constexpr type_index(std::uint64_t hash) noexcept : impl_(hash) {}
+  constexpr type_index(const type_id& id) noexcept : impl_(id.hash()) {}
+  constexpr type_index(const detail::TypeIndex& impl) noexcept : impl_(impl) {}
 
-  constexpr detail::hash_t hash() const noexcept { return hash_; }
+  constexpr std::uint64_t hash() const noexcept { return impl_.GetHash(); }
 
-  friend constexpr bool operator==(const unnamed_type_id_t& lhs, const unnamed_type_id_t& rhs) noexcept {
-    return lhs.hash() == rhs.hash();
-  }
-
-  friend constexpr std::strong_ordering operator<=>(const unnamed_type_id_t& lhs,
-                                                    const unnamed_type_id_t& rhs) noexcept {
-    return lhs.hash() <=> rhs.hash();
-  }
+  constexpr auto operator<=>(const type_index&) const noexcept = default;
+  constexpr bool operator==(const type_index&) const noexcept = default;
 
 private:
-  detail::hash_t hash_;
+  detail::TypeIndex impl_;
 };
 
-using type_index = unnamed_type_id_t;  // To mimic std::type_index when using maps
-
-constexpr ctti::unnamed_type_id_t id_from_name(std::string_view type_name) noexcept {
-  return detail::fnv1a_hash(type_name);
-}
-
-namespace detail {
-template <typename T>
-CTTI_CONSTEXPR_ID ctti::type_id_t type_id() noexcept {
-  return {ctti::nameof<T>()};
+constexpr type_index id_from_name(std::string_view type_name) noexcept {
+  return detail::IdFromName(type_name);
 }
 
 template <typename T>
-CTTI_CONSTEXPR_ID ctti::unnamed_type_id_t unnamed_type_id() noexcept {
-  return {id_from_name(ctti::nameof<T>())};
+constexpr type_id type_id_of(T&&) noexcept {
+  return detail::TypeIdOf<std::decay_t<T>>();
 }
 
-}  // namespace detail
-
-/**
- * @brief Returns type information at compile-time for a value
- * of type T. Decay is applied to argument type first, use
- * ctti::type_id<decltype(arg)>() to preserve references and cv qualifiers.
- */
 template <typename T>
-constexpr type_id_t type_id(T&&) noexcept {
-  return detail::type_id<std::decay_t<T>>();
+constexpr type_id type_id_of() noexcept {
+  return detail::TypeIdOf<T>();
 }
 
-/** @brief Returns type information at compile-time for type T. */
 template <typename T>
-constexpr type_id_t type_id() noexcept {
-  return detail::type_id<T>();
+constexpr type_index type_index_of(T&&) noexcept {
+  return detail::TypeIndexOf<std::decay_t<T>>();
 }
 
-/**
- * @brief Returns unnamed type information at compile-time for a value
- * of type T. Decay is applied to argument type first, use
- * ctti::type_id<decltype(arg)>() to preserve references and cv qualifiers.
- */
 template <typename T>
-constexpr unnamed_type_id_t unnamed_type_id(T&&) noexcept {
-  return detail::unnamed_type_id<std::decay_t<T>>();
-}
-
-/** @brief Returns unnamed type information at compile-time for type T. */
-template <typename T>
-constexpr unnamed_type_id_t unnamed_type_id() noexcept {
-  return detail::unnamed_type_id<T>();
+constexpr type_index type_index_of() noexcept {
+  return detail::TypeIndexOf<T>();
 }
 
 }  // namespace ctti
@@ -118,15 +63,15 @@ constexpr unnamed_type_id_t unnamed_type_id() noexcept {
 namespace std {
 
 template <>
-struct hash<ctti::type_id_t> {
-  constexpr std::size_t operator()(const ctti::type_id_t& id) const noexcept {
+struct hash<ctti::type_id> {
+  constexpr std::size_t operator()(const ctti::type_id& id) const noexcept {
     return static_cast<std::size_t>(id.hash());
   }
 };
 
 template <>
-struct hash<ctti::unnamed_type_id_t> {
-  constexpr std::size_t operator()(const ctti::unnamed_type_id_t& id) const noexcept {
+struct hash<ctti::type_index> {
+  constexpr std::size_t operator()(const ctti::type_index& id) const noexcept {
     return static_cast<std::size_t>(id.hash());
   }
 };
