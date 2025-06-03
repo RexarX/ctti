@@ -200,7 +200,7 @@ include(cmake/CPM.cmake)
 
 CPMAddPackage(
     NAME ctti
-    GITHUB_REPOSITORY "your-org/ctti"
+    GITHUB_REPOSITORY "https://github.com/RexarX/ctti"
     VERSION 1.0.0
     GIT_TAG main
 )
