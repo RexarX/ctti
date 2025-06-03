@@ -201,7 +201,7 @@ include(FetchContent)
 FetchContent_Declare(
     ctti
     GIT_REPOSITORY https://github.com/RexarX/ctti
-    GIT_TAG main  # or specific version tag like "v1.0.0"
+    GIT_TAG master  # or specific version tag like "v1.0.0"
 )
 
 FetchContent_MakeAvailable(ctti)
@@ -218,7 +218,7 @@ CPMAddPackage(
     NAME ctti
     GITHUB_REPOSITORY "https://github.com/RexarX/ctti"
     VERSION 1.0.0
-    GIT_TAG main
+    GIT_TAG master
 )
 
 target_link_libraries(your_target PRIVATE ctti::ctti)
