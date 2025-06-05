@@ -33,7 +33,7 @@ int main() {
   std::print("Status::kActive: {}\n", ctti::name_of<Status, Status::kActive>());
 
   // Hash literals
-  using namespace ctti;
+  using namespace ctti::hash_literals;
   constexpr auto hash = "hello"_sh;
   std::print("Hash: {}\n", hash);
 
@@ -88,11 +88,11 @@ ctti::set_member_value<ctti_symbols::value>(obj, 10)  // Set member value
 ### Hash Literals
 
 ```cpp
-using namespace ctti;
+using namespace ctti::hash_literals;
 
 constexpr auto hash = "hello"_sh;  // Compile-time string hash
 
-switch (ctti::detail::Fnv1aHash(input)) {
+switch (ctti::fnv1a_hash(input)) {
   case "start"_sh:
     // Handle start
     break;

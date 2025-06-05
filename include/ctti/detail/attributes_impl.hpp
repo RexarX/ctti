@@ -1,7 +1,7 @@
 #ifndef CTTI_DETAIL_ATTRIBUTES_IMPL_HPP
 #define CTTI_DETAIL_ATTRIBUTES_IMPL_HPP
 
-#include <ctti/detail/hash.hpp>
+#include <ctti/detail/hash_impl.hpp>
 #include <ctti/detail/meta.hpp>
 #include <ctti/detail/preprocessor.hpp>
 #include <ctti/detail/symbol_impl.hpp>

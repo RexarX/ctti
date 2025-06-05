@@ -3,6 +3,7 @@
 
 #include <ctti/detail/meta.hpp>
 #include <ctti/detail/name_impl.hpp>
+#include <ctti/detail/static_value_impl.hpp>
 #include <ctti/type_tag.hpp>
 
 #include <concepts>
@@ -12,98 +13,117 @@
 
 namespace ctti::detail {
 
+// Helper to detect if a type should be treated as a fundamental type for template detection
 template <typename T>
-concept TemplateSpecialization = requires {
-  typename T::template rebind<int>;  // Not foolproof, but helps
-};
+constexpr bool IsFundamentalForTemplateDetection() {
+  return std::is_fundamental_v<T> || std::same_as<T, std::string> || std::same_as<T, std::string_view> ||
+         std::same_as<T, std::nullptr_t>;
+}
 
+// Primary template - non-template types
 template <typename T>
 struct TemplateInfo {
   using type = T;
   static constexpr bool kIsTemplateInstantiation = false;
   static constexpr std::size_t kParameterCount = 0;
+  static constexpr std::size_t kTypeParameterCount = 0;
+  static constexpr std::size_t kValueParameterCount = 0;
 
   static constexpr std::string_view GetName() noexcept { return NameOfImpl<T>::Apply(); }
 };
 
-template <>
-struct TemplateInfo<std::string> {
-  using type = std::string;
-  static constexpr bool kIsTemplateInstantiation = false;
-  static constexpr std::size_t kParameterCount = 0;
-
-  static constexpr std::string_view GetName() noexcept { return "std::string"; }
-};
-
-template <>
-struct TemplateInfo<std::string_view> {
-  using type = std::string_view;
-  static constexpr bool kIsTemplateInstantiation = false;
-  static constexpr std::size_t kParameterCount = 0;
-
-  static constexpr std::string_view GetName() noexcept { return "std::string_view"; }
-};
-
+// Variadic type-only templates (but exclude fundamental-like types)
 template <template <typename...> class Template, typename... Args>
+  requires(!IsFundamentalForTemplateDetection<Template<Args...>>())
 struct TemplateInfo<Template<Args...>> {
   using type = Template<Args...>;
   static constexpr bool kIsTemplateInstantiation = true;
   static constexpr std::size_t kParameterCount = sizeof...(Args);
+  static constexpr std::size_t kTypeParameterCount = sizeof...(Args);
+  static constexpr std::size_t kValueParameterCount = 0;
 
   using parameters = TypeList<Args...>;
+  using type_parameters = TypeList<Args...>;
+  using value_parameters = TypeList<>;
 
   template <std::size_t I>
     requires(I < kParameterCount)
   using Parameter = PackGetType<I, Args...>;
 
+  template <std::size_t I>
+    requires(I < kTypeParameterCount)
+  using TypeParameter = PackGetType<I, Args...>;
+
   static constexpr std::string_view GetName() noexcept { return NameOfImpl<Template<Args...>>::Apply(); }
 
   template <std::size_t I>
-    requires(I < kParameterCount)
-  static constexpr type_tag<Parameter<I>> GetParameterTag() noexcept {
+    requires(I < kTypeParameterCount)
+  static constexpr type_tag<TypeParameter<I>> GetTypeParameterTag() noexcept {
     return {};
   }
 
   template <typename F>
+  static constexpr void ForEachTypeParameter(F&& f) {
+    (f(type_tag<Args>{}), ...);
+  }
+
+  template <typename F>
   static constexpr void ForEachParameter(F&& f) {
-    auto call_f = [&f](auto tag) { f(tag); };
-    (call_f(type_tag<Args>{}), ...);
+    ForEachTypeParameter(std::forward<F>(f));
+  }
+
+  static constexpr std::array<std::string_view, kTypeParameterCount> GetTypeParameterNames() noexcept {
+    return {NameOfImpl<Args>::Apply()...};
   }
 
   static constexpr std::array<std::string_view, kParameterCount> GetParameterNames() noexcept {
-    return {NameOfImpl<Args>::Apply()...};
+    return GetTypeParameterNames();
   }
 };
 
-// Specialization for non-type template parameters
+// Variadic value-only templates
 template <template <auto...> class Template, auto... Args>
 struct TemplateInfo<Template<Args...>> {
   using type = Template<Args...>;
   static constexpr bool kIsTemplateInstantiation = true;
   static constexpr std::size_t kParameterCount = sizeof...(Args);
+  static constexpr std::size_t kTypeParameterCount = 0;
+  static constexpr std::size_t kValueParameterCount = sizeof...(Args);
+
+  using parameters = TypeList<StaticValue<decltype(Args), Args>...>;
+  using type_parameters = TypeList<>;
+  using value_parameters = TypeList<StaticValue<decltype(Args), Args>...>;
 
   static constexpr std::string_view GetName() noexcept { return NameOfImpl<Template<Args...>>::Apply(); }
 
-  using parameters = TypeList<SizeType<static_cast<std::size_t>(Args)>...>;
-
   template <std::size_t I>
-    requires(I < kParameterCount)
-  static constexpr auto GetParameterValue() noexcept {
-    return PackGetType<I, decltype(Args)...>{Args...};
+    requires(I < kValueParameterCount)
+  static constexpr auto GetValueParameter() noexcept {
+    return std::get<I>(std::make_tuple(Args...));
+  }
+
+  template <typename F>
+  static constexpr void ForEachValueParameter(F&& f) {
+    (f(StaticValue<decltype(Args), Args>{}), ...);
+  }
+
+  template <typename F>
+  static constexpr void ForEachParameter(F&& f) {
+    ForEachValueParameter(std::forward<F>(f));
   }
 };
 
-// Mixed template parameters (types and values)
-template <template <typename, auto> class Template, typename T, auto Value>
-struct TemplateInfo<Template<T, Value>> {
-  using type = Template<T, Value>;
+// Single type + single value parameter specialization
+template <template <typename, auto> class Template, typename T, auto V>
+struct TemplateInfo<Template<T, V>> {
+  using type = Template<T, V>;
   static constexpr bool kIsTemplateInstantiation = true;
   static constexpr std::size_t kParameterCount = 2;
-
-  static constexpr std::string_view GetName() noexcept { return NameOfImpl<Template<T, Value>>::Apply(); }
+  static constexpr std::size_t kTypeParameterCount = 1;
+  static constexpr std::size_t kValueParameterCount = 1;
 
   using type_parameter = T;
-  static constexpr auto kValueParameter = Value;
+  static constexpr auto kValueParameter = V;
 
   template <std::size_t I>
     requires(I < kParameterCount)
@@ -111,43 +131,47 @@ struct TemplateInfo<Template<T, Value>> {
     if constexpr (I == 0) {
       return type_tag<T>{};
     } else {
-      return Value;
+      return StaticValue<decltype(V), V>{};
     }
   }
+
+  static constexpr std::string_view GetName() noexcept { return NameOfImpl<Template<T, V>>::Apply(); }
 };
 
-template <typename T>
-concept TemplateInstantiation = TemplateInfo<T>::kIsTemplateInstantiation;
-
-// Utility functions
-template <typename T>
-constexpr bool IsTemplateInstantiation() noexcept {
-  return TemplateInfo<T>::kIsTemplateInstantiation;
-}
-
-template <typename T>
-constexpr std::size_t TemplateParameterCount() noexcept {
-  return TemplateInfo<T>::kParameterCount;
-}
-
-template <typename T, std::size_t I>
-  requires TemplateInstantiation<T> && (I < TemplateInfo<T>::kParameterCount)
-using TemplateParameterT = typename TemplateInfo<T>::template Parameter<I>;
-
-// Template family detection
+// Rest of the implementation remains the same...
 template <template <typename...> class Template, typename T>
-struct IsInstantiationOfHelper : std::false_type {};
+struct IsVariadicInstantiationOfHelper : std::false_type {};
 
 template <template <typename...> class Template, typename... Args>
-struct IsInstantiationOfHelper<Template, Template<Args...>> : std::true_type {};
+struct IsVariadicInstantiationOfHelper<Template, Template<Args...>> : std::true_type {};
+
+template <template <auto...> class Template, typename T>
+struct IsVariadicValueInstantiationOfHelper : std::false_type {};
+
+template <template <auto...> class Template, auto... Args>
+struct IsVariadicValueInstantiationOfHelper<Template, Template<Args...>> : std::true_type {};
 
 template <template <typename...> class Template, typename T>
-constexpr bool IsInstantiationOf() noexcept {
-  return IsInstantiationOfHelper<Template, T>::value;
+constexpr bool IsVariadicInstantiationOf() noexcept {
+  return IsVariadicInstantiationOfHelper<Template, T>::value;
 }
 
-template <template <typename...> class Template, typename T>
-concept InstantiationOf = IsInstantiationOfHelper<Template, T>::value;
+template <template <auto...> class Template, typename T>
+constexpr bool IsVariadicValueInstantiationOf() noexcept {
+  return IsVariadicValueInstantiationOfHelper<Template, T>::value;
+}
+
+template <typename T>
+concept VariadicTypeTemplate = TemplateInfo<T>::kIsTemplateInstantiation && TemplateInfo<T>::kTypeParameterCount > 0 &&
+                               TemplateInfo<T>::kValueParameterCount == 0;
+
+template <typename T>
+concept VariadicValueTemplate = TemplateInfo<T>::kIsTemplateInstantiation &&
+                                TemplateInfo<T>::kTypeParameterCount == 0 && TemplateInfo<T>::kValueParameterCount > 0;
+
+template <typename T>
+concept MixedVariadicTemplate = TemplateInfo<T>::kIsTemplateInstantiation && TemplateInfo<T>::kTypeParameterCount > 0 &&
+                                TemplateInfo<T>::kValueParameterCount > 0;
 
 }  // namespace ctti::detail
 

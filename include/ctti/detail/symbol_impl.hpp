@@ -2,7 +2,7 @@
 #define CTTI_DETAIL_SYMBOL_IMPL_HPP
 
 #include <ctti/detail/concepts_impl.hpp>
-#include <ctti/detail/hash.hpp>
+#include <ctti/detail/hash_impl.hpp>
 #include <ctti/detail/meta.hpp>
 #include <ctti/detail/name_impl.hpp>
 #include <ctti/detail/preprocessor.hpp>

@@ -65,10 +65,10 @@ TEST_SUITE("template_info") {
     CHECK(std::same_as<decltype(info)::parameter<0>, std::string>);
     CHECK(std::same_as<decltype(info)::parameter<1>, double>);
 
-    auto tag0 = info.parameter_tag<0>();
-    auto tag1 = info.parameter_tag<1>();
-    CHECK(std::same_as<decltype(tag0)::type, std::string>);
-    CHECK(std::same_as<decltype(tag1)::type, double>);
+    auto tag0 = info.type_parameter_tag<0>();
+    auto tag1 = info.type_parameter_tag<1>();
+    CHECK(std::same_as<typename decltype(tag0)::type, std::string>);
+    CHECK(std::same_as<typename decltype(tag1)::type, double>);
   }
 
   TEST_CASE("non_template_info") {
@@ -105,7 +105,7 @@ TEST_SUITE("template_info") {
     auto info = ctti::get_template_info<PairStringDouble>();
 
     int count = 0;
-    info.for_each_parameter([&count](auto identity) { ++count; });
+    info.for_each_parameter([&count](auto tag) { ++count; });
 
     CHECK(count == 2);
   }
@@ -129,7 +129,7 @@ TEST_SUITE("template_info") {
     CHECK(info.is_template_instantiation);
     CHECK(info.parameter_count == 1);
 
-    auto value = info.parameter_value<0>();
+    auto value = info.value_parameter<0>();
     CHECK(value == 5);
   }
 
@@ -145,27 +145,21 @@ TEST_SUITE("template_info") {
     auto param0 = info.parameter<0>();
     auto param1 = info.parameter<1>();
 
-    CHECK(std::same_as<decltype(param0)::type, float>);
+    CHECK(std::same_as<typename decltype(param0)::type, float>);
     CHECK(param1 == 3);
   }
 
-  TEST_CASE("is_instantiation_of") {
-    CHECK(ctti::is_instantiation_of<SimpleTemplate, SimpleInt>());
-    CHECK_FALSE(ctti::is_instantiation_of<PairTemplate, SimpleInt>());
-    CHECK_FALSE(ctti::is_instantiation_of<SimpleTemplate, int>());
+  TEST_CASE("is_variadic_instantiation_of") {
+    CHECK(ctti::is_variadic_instantiation_of<SimpleTemplate, SimpleInt>());
+    CHECK_FALSE(ctti::is_variadic_instantiation_of<PairTemplate, SimpleInt>());
+    CHECK_FALSE(ctti::is_variadic_instantiation_of<SimpleTemplate, int>());
 
-    static_assert(ctti::instantiation_of<SimpleTemplate, SimpleInt>);
-    static_assert(!ctti::instantiation_of<PairTemplate, SimpleInt>);
+    static_assert(ctti::variadic_instantiation_of<SimpleTemplate, SimpleInt>);
+    static_assert(!ctti::variadic_instantiation_of<PairTemplate, SimpleInt>);
   }
 
   TEST_CASE("template_specialization_concept") {
-    // This concept is hard to test reliably as it depends on implementation details
-    // Just check that it compiles
-    constexpr bool is_spec1 = ctti::template_specialization<SimpleInt>;
-    constexpr bool is_spec2 = ctti::template_specialization<int>;
-
-    // Results may vary, but should compile
-    static_cast<void>(is_spec1);
-    static_cast<void>(is_spec2);
+    CHECK(ctti::template_specialization<SimpleInt>);
+    CHECK_FALSE(ctti::template_specialization<int>);
   }
 }

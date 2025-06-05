@@ -1,7 +1,7 @@
 #ifndef CTTI_DETAIL_TYPE_ID_IMPL_HPP
 #define CTTI_DETAIL_TYPE_ID_IMPL_HPP
 
-#include <ctti/detail/hash.hpp>
+#include <ctti/detail/hash_impl.hpp>
 #include <ctti/detail/name_impl.hpp>
 
 #include <compare>

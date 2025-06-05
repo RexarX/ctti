@@ -5,7 +5,7 @@
 #include <ctti/concepts.hpp>
 #include <ctti/constructor.hpp>
 #include <ctti/enum_utils.hpp>
-#include <ctti/hash_literal.hpp>
+#include <ctti/hash.hpp>
 #include <ctti/inheritance.hpp>
 #include <ctti/map.hpp>
 #include <ctti/model.hpp>

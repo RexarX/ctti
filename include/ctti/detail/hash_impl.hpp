@@ -18,8 +18,8 @@ constexpr HashType Fnv1aHash(std::string_view str, HashType hash = kFnvBasis) no
   return hash;
 }
 
-constexpr HashType Fnv1aHash(std::size_t n, const char* str, HashType hash = kFnvBasis) noexcept {
-  return n > 0 ? Fnv1aHash(n - 1, str + 1, (hash ^ static_cast<HashType>(*str)) * kFnvPrime) : hash;
+constexpr HashType Fnv1aHash(std::size_t size, const char* str, HashType hash = kFnvBasis) noexcept {
+  return size > 0 ? Fnv1aHash(size - 1, str + 1, (hash ^ static_cast<HashType>(*str)) * kFnvPrime) : hash;
 }
 
 template <std::size_t N>

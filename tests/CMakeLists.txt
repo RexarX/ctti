@@ -9,6 +9,7 @@ add_executable(ctti_tests
     test_attributes.cpp
     test_constructor.cpp
     test_enum_utils.cpp
+    test_hash.cpp
     test_inheritance.cpp
     test_map.cpp
     test_model.cpp
@@ -16,15 +17,14 @@ add_executable(ctti_tests
     test_template_info.cpp
     test_tie.cpp
     test_type_id.cpp
-    test_hash_literal.cpp
 
     detail/test_meta.cpp
-    detail/test_hash.cpp
     detail/test_pretty_function.cpp
     detail/test_name_filters.cpp
     detail/test_name_parser.cpp
     detail/test_entity_name.cpp
     detail/test_overload_resolution.cpp
+    detail/test_compile_time_string.cpp
 )
 
 target_link_libraries(ctti_tests PRIVATE ctti)

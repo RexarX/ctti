@@ -7,116 +7,161 @@
 namespace ctti {
 
 template <typename T>
-concept template_specialization = detail::TemplateSpecialization<T>;
+concept template_instantiation = detail::TemplateInfo<T>::kIsTemplateInstantiation;
 
 template <typename T>
-concept template_instantiation = detail::TemplateInstantiation<T>;
+concept variadic_type_template = detail::VariadicTypeTemplate<T>;
 
-// Base template for non-template types
+template <typename T>
+concept variadic_value_template = detail::VariadicValueTemplate<T>;
+
+template <typename T>
+concept mixed_variadic_template = detail::MixedVariadicTemplate<T>;
+
+// Primary template_info
 template <typename T>
 struct template_info {
   using type = T;
   static constexpr bool is_template_instantiation = detail::TemplateInfo<T>::kIsTemplateInstantiation;
   static constexpr std::size_t parameter_count = detail::TemplateInfo<T>::kParameterCount;
+  static constexpr std::size_t type_parameter_count = detail::TemplateInfo<T>::kTypeParameterCount;
+  static constexpr std::size_t value_parameter_count = detail::TemplateInfo<T>::kValueParameterCount;
 
   static constexpr std::string_view name() noexcept { return detail::TemplateInfo<T>::GetName(); }
 };
 
-// Specialization for regular template instantiations (template <typename...>)
-template <template <typename...> class Template, typename... Args>
-struct template_info<Template<Args...>> {
-  using type = Template<Args...>;
+// Specialization for variadic type templates
+template <variadic_type_template T>
+struct template_info<T> {
+  using type = T;
   static constexpr bool is_template_instantiation = true;
-  static constexpr std::size_t parameter_count = sizeof...(Args);
+  static constexpr std::size_t parameter_count = detail::TemplateInfo<T>::kParameterCount;
+  static constexpr std::size_t type_parameter_count = detail::TemplateInfo<T>::kTypeParameterCount;
+  static constexpr std::size_t value_parameter_count = 0;
 
-  static constexpr std::string_view name() noexcept { return detail::TemplateInfo<Template<Args...>>::GetName(); }
+  template <std::size_t I>
+    requires(I < type_parameter_count)
+  using type_parameter = typename detail::TemplateInfo<T>::template TypeParameter<I>;
 
   template <std::size_t I>
     requires(I < parameter_count)
-  using parameter = typename detail::TemplateInfo<Template<Args...>>::template Parameter<I>;
+  using parameter = type_parameter<I>;
+
+  static constexpr std::string_view name() noexcept { return detail::TemplateInfo<T>::GetName(); }
 
   template <std::size_t I>
-    requires(I < parameter_count)
-  static constexpr type_tag<parameter<I>> parameter_tag() noexcept {
-    return detail::TemplateInfo<Template<Args...>>::template GetParameterTag<I>();
+    requires(I < type_parameter_count)
+  static constexpr type_tag<type_parameter<I>> type_parameter_tag() noexcept {
+    return detail::TemplateInfo<T>::template GetTypeParameterTag<I>();
+  }
+
+  template <typename F>
+  static constexpr void for_each_type_parameter(F&& f) {
+    detail::TemplateInfo<T>::ForEachTypeParameter(std::forward<F>(f));
   }
 
   template <typename F>
   static constexpr void for_each_parameter(F&& f) {
-    detail::TemplateInfo<Template<Args...>>::ForEachParameter(std::forward<F>(f));
+    for_each_type_parameter(std::forward<F>(f));
+  }
+
+  static constexpr std::array<std::string_view, type_parameter_count> type_parameter_names() noexcept {
+    return detail::TemplateInfo<T>::GetTypeParameterNames();
   }
 
   static constexpr std::array<std::string_view, parameter_count> parameter_names() noexcept {
-    return detail::TemplateInfo<Template<Args...>>::GetParameterNames();
+    return type_parameter_names();
   }
 };
 
-// Specialization for non-type template parameters (template <auto...>)
-template <template <auto...> class Template, auto... Args>
-struct template_info<Template<Args...>> {
-  using type = Template<Args...>;
+// Specialization for variadic value templates
+template <variadic_value_template T>
+struct template_info<T> {
+  using type = T;
   static constexpr bool is_template_instantiation = true;
-  static constexpr std::size_t parameter_count = sizeof...(Args);
+  static constexpr std::size_t parameter_count = detail::TemplateInfo<T>::kParameterCount;
+  static constexpr std::size_t type_parameter_count = 0;
+  static constexpr std::size_t value_parameter_count = detail::TemplateInfo<T>::kValueParameterCount;
 
-  static constexpr std::string_view name() noexcept { return detail::TemplateInfo<Template<Args...>>::GetName(); }
+  static constexpr std::string_view name() noexcept { return detail::TemplateInfo<T>::GetName(); }
 
   template <std::size_t I>
-    requires(I < parameter_count)
-  static constexpr auto parameter_value() noexcept {
-    return detail::TemplateInfo<Template<Args...>>::template GetParameterValue<I>();
+    requires(I < value_parameter_count)
+  static constexpr auto value_parameter() noexcept {
+    return detail::TemplateInfo<T>::template GetValueParameter<I>();
+  }
+
+  template <typename F>
+  static constexpr void for_each_value_parameter(F&& f) {
+    detail::TemplateInfo<T>::ForEachValueParameter(std::forward<F>(f));
+  }
+
+  template <typename F>
+  static constexpr void for_each_parameter(F&& f) {
+    for_each_value_parameter(std::forward<F>(f));
   }
 };
 
-// Specialization for mixed template parameters (template <typename, auto>)
-template <template <typename, auto> class Template, typename T, auto Value>
-struct template_info<Template<T, Value>> {
-  using type = Template<T, Value>;
+// Specialization for mixed templates
+template <mixed_variadic_template T>
+struct template_info<T> {
+  using type = T;
   static constexpr bool is_template_instantiation = true;
-  static constexpr std::size_t parameter_count = 2;
+  static constexpr std::size_t parameter_count = detail::TemplateInfo<T>::kParameterCount;
+  static constexpr std::size_t type_parameter_count = detail::TemplateInfo<T>::kTypeParameterCount;
+  static constexpr std::size_t value_parameter_count = detail::TemplateInfo<T>::kValueParameterCount;
 
-  static constexpr std::string_view name() noexcept { return detail::TemplateInfo<Template<T, Value>>::GetName(); }
-
-  using type_parameter = T;
-  static constexpr auto value_parameter = Value;
+  using type_parameter = typename detail::TemplateInfo<T>::type_parameter;
+  static constexpr auto value_parameter = detail::TemplateInfo<T>::kValueParameter;
 
   template <std::size_t I>
     requires(I < parameter_count)
   static constexpr auto parameter() noexcept {
-    return detail::TemplateInfo<Template<T, Value>>::template GetParameter<I>();
+    return detail::TemplateInfo<T>::template GetParameter<I>();
   }
+
+  static constexpr std::string_view name() noexcept { return detail::TemplateInfo<T>::GetName(); }
 };
 
+// Utility functions
 template <typename T>
-constexpr template_info<T> get_template_info() noexcept {
-  return {};
-}
-
-template <typename T>
-constexpr template_info<T> get_template_info(type_tag<T>) noexcept {
-  return {};
+constexpr auto get_template_info() noexcept {
+  return template_info<T>{};
 }
 
 template <typename T>
 constexpr bool is_template_instantiation() noexcept {
-  return detail::IsTemplateInstantiation<T>();
+  return template_instantiation<T>;
 }
 
 template <typename T>
 constexpr std::size_t template_parameter_count() noexcept {
-  return detail::TemplateParameterCount<T>();
+  return template_info<T>::parameter_count;
 }
 
 template <typename T, std::size_t I>
-  requires template_instantiation<T> && (I < template_info<T>::parameter_count)
-using template_parameter_t = detail::TemplateParameterT<T, I>;
+  requires(I < template_info<T>::parameter_count && variadic_type_template<T>)
+using template_parameter_t = typename template_info<T>::template parameter<I>;
 
 template <template <typename...> class Template, typename T>
-constexpr bool is_instantiation_of() noexcept {
-  return detail::IsInstantiationOf<Template, T>();
+constexpr bool is_variadic_instantiation_of() noexcept {
+  return detail::IsVariadicInstantiationOf<Template, T>();
+}
+
+template <template <auto...> class Template, typename T>
+constexpr bool is_variadic_value_instantiation_of() noexcept {
+  return detail::IsVariadicValueInstantiationOf<Template, T>();
 }
 
 template <template <typename...> class Template, typename T>
-concept instantiation_of = detail::InstantiationOf<Template, T>;
+concept variadic_instantiation_of = detail::IsVariadicInstantiationOfHelper<Template, T>::value;
+
+template <template <auto...> class Template, typename T>
+concept variadic_value_instantiation_of = detail::IsVariadicValueInstantiationOfHelper<Template, T>::value;
+
+// Simple instantiation checking (for any template)
+template <typename T>
+concept template_specialization = template_instantiation<T>;
 
 }  // namespace ctti
 

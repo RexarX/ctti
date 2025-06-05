@@ -137,7 +137,7 @@ void DemonstrateConstructorInfo() {
 void DemonstrateHashLiterals() {
   std::print("=== Hash Literals ===\n");
 
-  using namespace ctti;
+  using namespace ctti::hash_literals;
 
   constexpr auto hello_hash = "hello"_sh;
   constexpr auto world_hash = "world"_sh;
@@ -146,7 +146,7 @@ void DemonstrateHashLiterals() {
   std::print("'world' hash: {}\n", world_hash);
 
   constexpr auto process_command = [](std::string_view cmd) -> std::string_view {
-    switch (ctti::detail::Fnv1aHash(cmd)) {
+    switch (ctti::fnv1a_hash(cmd)) {
       case "start"_sh:
         return "Starting...";
       case "stop"_sh:

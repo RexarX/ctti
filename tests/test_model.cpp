@@ -10,12 +10,12 @@ struct TestStruct {
   std::string name;
 };
 
-CTTI_DEFINE_SYMBOL(value)
-CTTI_DEFINE_SYMBOL(name)
-
 struct IntrusiveModelStruct {
   int data = 0;
-  using ctti_model = ctti::model<ctti_symbols::value>;
+  using ctti_model = decltype([]() {
+    constexpr auto value_symbol = CTTI_SYMBOL(value);
+    return ctti::model<decltype(value_symbol)>{};
+  }());
 };
 
 struct NoModelStruct {
@@ -23,23 +23,29 @@ struct NoModelStruct {
   int y = 0;
 };
 
-// Simple ADL functions - can be defined anywhere!
-// These will be found by ADL since TestStruct is in the global namespace
-ctti::model<ctti_symbols::value, ctti_symbols::name> ctti_model(ctti::type_tag<TestStruct>) {
-  return {};
+auto ctti_model(ctti::type_tag<TestStruct>) {
+  constexpr auto value_symbol = CTTI_SYMBOL(value);
+  constexpr auto name_symbol = CTTI_SYMBOL(name);
+  return ctti::model<decltype(value_symbol), decltype(name_symbol)>{};
 }
 
-ctti::model<> ctti_model(ctti::type_tag<int>) {
-  return {};
+auto ctti_model(ctti::type_tag<int>) {
+  return ctti::model<>{};
 }
 
-ctti::model<> ctti_model(ctti::type_tag<double>) {
-  return {};
+auto ctti_model(ctti::type_tag<double>) {
+  return ctti::model<>{};
 }
+
+CTTI_REGISTER_MEMBER(TestStruct, value);
+CTTI_REGISTER_MEMBER(TestStruct, name);
+CTTI_REGISTER_MEMBER(IntrusiveModelStruct, data);
 
 TEST_SUITE("model") {
   TEST_CASE("basic_model") {
-    using test_model = ctti::model<ctti_symbols::value, ctti_symbols::name>;
+    constexpr auto value_symbol = CTTI_SYMBOL(value);
+    constexpr auto name_symbol = CTTI_SYMBOL(name);
+    using test_model = ctti::model<decltype(value_symbol), decltype(name_symbol)>;
 
     CHECK(test_model::size == 2);
     static_assert(test_model::size == 2);
@@ -87,8 +93,11 @@ TEST_SUITE("model") {
 
   TEST_CASE("model_compilation") {
     // Test that models compile correctly with different symbol counts
-    using model1 = ctti::model<ctti_symbols::value>;
-    using model2 = ctti::model<ctti_symbols::value, ctti_symbols::name>;
+    constexpr auto value_symbol = CTTI_SYMBOL(value);
+    constexpr auto name_symbol = CTTI_SYMBOL(name);
+
+    using model1 = ctti::model<decltype(value_symbol)>;
+    using model2 = ctti::model<decltype(value_symbol), decltype(name_symbol)>;
     using model3 = ctti::model<>;
 
     static_assert(model1::size == 1);
