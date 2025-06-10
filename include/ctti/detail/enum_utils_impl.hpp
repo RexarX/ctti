@@ -1,17 +1,14 @@
 #ifndef CTTI_DETAIL_ENUM_UTILS_IMPL_HPP
 #define CTTI_DETAIL_ENUM_UTILS_IMPL_HPP
 
-#include <ctti/detail/concepts_impl.hpp>
 #include <ctti/detail/meta.hpp>
 #include <ctti/detail/name_impl.hpp>
-#include <ctti/name.hpp>
 
 #include <array>
 #include <concepts>
 #include <optional>
 #include <string_view>
 #include <type_traits>
-#include <vector>
 
 namespace ctti::detail {
 
@@ -21,14 +18,15 @@ concept ScopedEnum = std::is_enum_v<E> && !std::convertible_to<E, std::underlyin
 template <typename E>
 concept UnscopedEnum = std::is_enum_v<E> && std::convertible_to<E, std::underlying_type_t<E>>;
 
-template <EnumType E>
+template <typename E>
+  requires std::is_enum_v<E>
 struct EnumInfo {
   using enum_type = E;
   using underlying_type = std::underlying_type_t<E>;
 
   template <E Value>
   static constexpr std::string_view NameOfValue() noexcept {
-    return ctti::name_of<E, Value>();
+    return ValueNameOfImpl<E, Value>::Apply();
   }
 
   template <E Value>
@@ -36,7 +34,7 @@ struct EnumInfo {
     return static_cast<underlying_type>(Value);
   }
 
-  static constexpr std::string_view Name() noexcept { return ctti::name_of<E>(); }
+  static constexpr std::string_view Name() noexcept { return NameOfImpl<E>::Apply(); }
 
   static constexpr bool IsScoped() noexcept { return ScopedEnum<E>; }
 
@@ -44,14 +42,10 @@ struct EnumInfo {
   static constexpr std::optional<E> FromUnderlying(T value) noexcept {
     return static_cast<E>(value);
   }
-
-  template <E Value>
-  static constexpr auto DetailedName() noexcept {
-    return ctti::qualified_name_of<E, Value>();
-  }
 };
 
-template <EnumType E, E... Values>
+template <typename E, E... Values>
+  requires std::is_enum_v<E>
 struct EnumValueList {
   using enum_type = E;
   using values = TypeList<SizeType<static_cast<std::size_t>(Values)>...>;
@@ -76,15 +70,19 @@ struct EnumValueList {
     (call_f(SizeType<static_cast<std::size_t>(Values)>{}, Values), ...);
   }
 
-  static constexpr std::array<std::string_view, kCount> Names() noexcept { return {ctti::name_of<E, Values>()...}; }
+  static constexpr std::array<std::string_view, kCount> Names() noexcept {
+    return {ValueNameOfImpl<E, Values>::Apply()...};
+  }
 };
 
-template <EnumType E, E Lhs, E Rhs>
+template <typename E, E Lhs, E Rhs>
+  requires std::is_enum_v<E>
 constexpr bool EnumEqual() noexcept {
   return Lhs == Rhs;
 }
 
-template <EnumType E, E Lhs, E Rhs>
+template <typename E, E Lhs, E Rhs>
+  requires std::is_enum_v<E>
 constexpr bool EnumLess() noexcept {
   return static_cast<std::underlying_type_t<E>>(Lhs) < static_cast<std::underlying_type_t<E>>(Rhs);
 }

@@ -1,8 +1,9 @@
 #ifndef CTTI_DETAIL_OVERLOAD_RESOLUTION_HPP
 #define CTTI_DETAIL_OVERLOAD_RESOLUTION_HPP
 
-#include <concepts>
 #include <ctti/detail/meta.hpp>
+
+#include <concepts>
 #include <functional>
 #include <tuple>
 #include <type_traits>

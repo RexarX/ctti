@@ -2,7 +2,6 @@
 #define CTTI_NAME_HPP
 
 #include <ctti/detail/name_impl.hpp>
-#include <ctti/type_tag.hpp>
 
 #include <string_view>
 

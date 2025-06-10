@@ -9,13 +9,11 @@ template <typename T, T Value>
 struct StaticValue {
   using value_type = T;
   static constexpr value_type kValue = Value;
-  static constexpr value_type value = kValue;
 
   constexpr StaticValue() noexcept = default;
 
-  constexpr operator value_type() const noexcept { return kValue; }
-  constexpr value_type Get() const noexcept { return kValue; }
-  constexpr value_type get() const noexcept { return Get(); }
+  static constexpr value_type Get() noexcept { return kValue; }
+  constexpr operator value_type() const noexcept { return Get(); }
 
   constexpr auto operator<=>(const StaticValue&) const noexcept = default;
   constexpr bool operator==(const StaticValue&) const noexcept = default;

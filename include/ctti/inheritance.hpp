@@ -26,53 +26,63 @@ concept has_virtual_destructor = detail::HasVirtualDestructor<T>;
 template <typename Derived, typename Base>
   requires derived_from<Derived, Base>
 struct inheritance_info {
-  static constexpr bool is_derived = detail::InheritanceInfo<Derived, Base>::kIsDerived;
-  static constexpr bool is_public_derived = detail::InheritanceInfo<Derived, Base>::kIsPublicDerived;
-  static constexpr bool is_virtual_base = detail::InheritanceInfo<Derived, Base>::kIsVirtualBase;
+private:
+  using internal_info = detail::InheritanceInfo<Derived, Base>;
+
+public:
+  static constexpr bool is_derived = internal_info::kIsDerived;
+  static constexpr bool is_public_derived = internal_info::kIsPublicDerived;
+  static constexpr bool is_virtual_base = internal_info::kIsVirtualBase;
 
   using derived_type = Derived;
   using base_type = Base;
 
-  static constexpr std::string_view derived_name() noexcept {
-    return detail::InheritanceInfo<Derived, Base>::DerivedName();
-  }
+  static constexpr std::string_view derived_name() noexcept { return internal_info::DerivedName(); }
 
-  static constexpr std::string_view base_name() noexcept { return detail::InheritanceInfo<Derived, Base>::BaseName(); }
+  static constexpr std::string_view base_name() noexcept { return internal_info::BaseName(); }
 };
 
 template <typename T, typename... Bases>
   requires(derived_from<T, Bases> && ...)
 struct base_list {
+private:
+  using internal_list = detail::BaseList<T, Bases...>;
+
+public:
   using type = T;
-  using bases = typename detail::BaseList<T, Bases...>::bases;
-  static constexpr std::size_t count = detail::BaseList<T, Bases...>::kCount;
+  using bases_type = typename internal_list::bases;
+  static constexpr std::size_t count = internal_list::kCount;
 
   template <std::size_t I>
     requires(I < count)
-  using base = typename detail::BaseList<T, Bases...>::template Base<I>;
+  using base = typename internal_list::template Base<I>;
 
   template <typename Base>
   static constexpr bool has_base() noexcept {
-    return detail::BaseList<T, Bases...>::template HasBase<Base>();
+    return internal_list::template HasBase<Base>();
   }
 
   template <typename F>
     requires(std::invocable<F, detail::Identity<Bases>> && ...)
   static constexpr void for_each_base(F&& f) {
-    detail::BaseList<T, Bases...>::ForEachBase(std::forward<F>(f));
+    internal_list::ForEachBase(std::forward<F>(f));
   }
 };
 
 template <typename T>
-struct polymorphism_info {
-  static constexpr bool is_polymorphic = detail::PolymorphismInfo<T>::kIsPolymorphic;
-  static constexpr bool is_abstract = detail::PolymorphismInfo<T>::kIsAbstract;
-  static constexpr bool is_final = detail::PolymorphismInfo<T>::kIsFinal;
-  static constexpr bool has_virtual_destructor = detail::PolymorphismInfo<T>::kHasVirtualDestructor;
+class polymorphism_info {
+private:
+  using internal_info = detail::PolymorphismInfo<T>;
+
+public:
+  static constexpr bool is_polymorphic = internal_info::kIsPolymorphic;
+  static constexpr bool is_abstract = internal_info::kIsAbstract;
+  static constexpr bool is_final = internal_info::kIsFinal;
+  static constexpr bool has_virtual_destructor = internal_info::kHasVirtualDestructor;
 
   using type = T;
 
-  static constexpr std::string_view name() noexcept { return detail::PolymorphismInfo<T>::Name(); }
+  static constexpr std::string_view name() noexcept { return internal_info::Name(); }
 };
 
 template <typename Derived, typename Base>

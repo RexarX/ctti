@@ -33,7 +33,7 @@ template <typename Derived, typename Base>
 struct InheritanceInfo {
   static constexpr bool kIsDerived = true;
   static constexpr bool kIsPublicDerived = PubliclyDerivedFrom<Derived, Base>;
-  static constexpr bool kIsVirtualBase = false;  // Hard to detect without compiler support
+  static constexpr bool kIsVirtualBase = false;
 
   using derived_type = Derived;
   using base_type = Base;
@@ -78,7 +78,6 @@ struct PolymorphismInfo {
   static constexpr std::string_view Name() noexcept { return NameOfImpl<T>::Apply(); }
 };
 
-// Utility functions
 template <typename Derived, typename Base>
 constexpr bool IsDerivedFrom() noexcept {
   return DerivedFrom<Derived, Base>;
@@ -104,7 +103,6 @@ constexpr bool IsFinal() noexcept {
   return Final<T>;
 }
 
-// Safe casting utilities
 template <typename To, typename From>
   requires PubliclyDerivedFrom<From, To> || PubliclyDerivedFrom<To, From>
 constexpr To* SafeCast(From* ptr) noexcept {

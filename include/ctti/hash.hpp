@@ -15,8 +15,8 @@ constexpr std::uint64_t operator""_sh(const char* str, std::size_t length) noexc
   return ctti::fnv1a_hash(std::string_view{str, length});
 }
 
-} // namespace hash_literals
+}  // namespace hash_literals
 
-} // namespace ctti
+}  // namespace ctti
 
-#endif // CTTI_HASH_HPP
+#endif  // CTTI_HASH_HPP

@@ -7,28 +7,28 @@ namespace ctti {
 
 using default_symbol_mapping_function = detail::DefaultSymbolMappingFunction;
 
-template <typename SourceSymbol, typename SinkSymbol, typename Source, typename Sink, typename Function>
-  requires std::invocable<Function, const Source&, SourceSymbol&&, Sink&, SinkSymbol&&>
+template <auto SourceSymbol, auto SinkSymbol, typename Source, typename Sink, typename Function>
+  requires std::invocable<Function, const Source&, decltype(SourceSymbol), Sink&, decltype(SinkSymbol)>
 void map(const Source& source, Sink& sink, const Function& function) noexcept {
-  detail::Map<SourceSymbol, SinkSymbol>(source, sink, function);
+  detail::Map<decltype(SourceSymbol), decltype(SinkSymbol)>(source, sink, function);
 }
 
-template <typename SourceSymbol, typename SinkSymbol, typename Source, typename Sink>
+template <auto SourceSymbol, auto SinkSymbol, typename Source, typename Sink>
 void map(const Source& source, Sink& sink) noexcept {
-  detail::Map<SourceSymbol, SinkSymbol>(source, sink);
+  detail::Map<decltype(SourceSymbol), decltype(SinkSymbol)>(source, sink);
 }
 
-template <typename SourceSymbol, typename SinkSymbol, typename Function = default_symbol_mapping_function>
-using symbol_mapping = detail::SymbolMapping<SourceSymbol, SinkSymbol, Function>;
+template <auto SourceSymbol, auto SinkSymbol, typename Function = default_symbol_mapping_function>
+using symbol_mapping = detail::SymbolMapping<decltype(SourceSymbol), decltype(SinkSymbol), Function>;
 
-template <typename SourceSymbol, typename SinkSymbol, typename Function>
+template <auto SourceSymbol, auto SinkSymbol, typename Function>
 constexpr auto make_mapping(Function&& function) noexcept {
-  return detail::MakeMapping<SourceSymbol, SinkSymbol>(std::forward<Function>(function));
+  return detail::MakeMapping<decltype(SourceSymbol), decltype(SinkSymbol)>(std::forward<Function>(function));
 }
 
-template <typename SourceSymbol, typename SinkSymbol>
+template <auto SourceSymbol, auto SinkSymbol>
 constexpr auto make_mapping() noexcept {
-  return detail::MakeMapping<SourceSymbol, SinkSymbol>();
+  return detail::MakeMapping<decltype(SourceSymbol), decltype(SinkSymbol)>();
 }
 
 template <typename Source, typename Sink, typename... Mappings>

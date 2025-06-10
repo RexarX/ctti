@@ -17,6 +17,7 @@ add_executable(ctti_tests
     test_template_info.cpp
     test_tie.cpp
     test_type_id.cpp
+    test_reflection.cpp
 
     detail/test_meta.cpp
     detail/test_pretty_function.cpp

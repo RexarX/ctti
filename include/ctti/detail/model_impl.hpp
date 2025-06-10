@@ -9,41 +9,58 @@ namespace ctti::detail {
 
 template <typename... Symbols>
 struct Model {
-  using symbol_list = TypeList<Symbols...>;
+  using SymbolList = TypeList<Symbols...>;
   static constexpr std::size_t kSize = sizeof...(Symbols);
-
-  using symbols = symbol_list;
-  static constexpr std::size_t size = kSize;
 };
 
 template <typename T>
-constexpr auto get_model_helper(int) -> decltype(ctti_model(type_tag<T>{}));
+consteval auto GetModelHelper(int) -> decltype(ctti_model(ctti::type_tag<T>{}));
 
 template <typename T>
-constexpr Model<> get_model_helper(...);
+consteval Model<> GetModelHelper(...);
 
 template <typename T, typename = void>
 struct GetModel {
-  using type = decltype(get_model_helper<T>(0));
+  using Type = decltype(GetModelHelper<T>(0));
 };
 
 template <typename T>
 struct GetModel<T, VoidType<typename T::ctti_model>> {
-  using type = typename T::ctti_model;
+  using Type = typename T::ctti_model;
 };
 
 template <typename T>
-using ModelOf = typename GetModel<T>::type;
+using ModelOf = typename GetModel<T>::Type;
 
 template <typename T>
-struct HasModel : public BoolType<(ListSize<ModelOf<T>>::value > 0)> {};
+class HasModel {
+private:
+  template <typename U>
+  static constexpr bool CheckIntrusive() {
+    if constexpr (requires { typename U::ctti_model; }) {
+      using model_type = typename U::ctti_model;
+      if constexpr (requires { model_type::size; }) {
+        return model_type::size > 0;
+      }
+    }
+    return false;
+  }
+
+  template <typename U>
+  static constexpr bool CheckAdl() {
+    if constexpr (requires { ctti_model(ctti::type_tag<U>{}); }) {
+      using model_type = decltype(ctti_model(ctti::type_tag<U>{}));
+      if constexpr (requires { model_type::size; }) {
+        return model_type::size > 0;
+      }
+    }
+    return false;
+  }
+
+public:
+  static constexpr bool kValue = CheckIntrusive<T>() || CheckAdl<T>();
+};
 
 }  // namespace ctti::detail
-
-// Default implementation in global namespace for fallback
-template <typename T>
-constexpr ctti::detail::Model<> ctti_model(ctti::type_tag<T>) {
-  return {};
-}
 
 #endif  // CTTI_DETAIL_MODEL_IMPL_HPP

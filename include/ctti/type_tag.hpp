@@ -5,8 +5,8 @@ namespace ctti {
 
 template <typename T>
 struct type_tag {
-  constexpr type_tag() noexcept = default;
   using type = T;
+  constexpr type_tag() noexcept = default;
 };
 
 }  // namespace ctti

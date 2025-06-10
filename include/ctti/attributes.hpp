@@ -6,89 +6,90 @@
 namespace ctti {
 
 template <auto Value>
-struct attribute {
-  using value_type = typename detail::Attribute<Value>::value_type;
-  static constexpr value_type value = detail::Attribute<Value>::kValue;
+struct attribute_value {
+  using value_type = decltype(Value);
+  static constexpr value_type value = Value;
 
   constexpr value_type get() const noexcept { return value; }
   constexpr operator value_type() const noexcept { return get(); }
 
-  friend constexpr bool operator==(const attribute&, const value_type& other) noexcept { return Value == other; }
-  friend constexpr bool operator==(const value_type& other, const attribute&) noexcept { return Value == other; }
+  friend constexpr bool operator==(const attribute_value&, const value_type& other) noexcept { return value == other; }
+  friend constexpr bool operator==(const value_type& other, const attribute_value&) noexcept { return value == other; }
 };
 
-template <typename T>
-concept attribute_type = detail::AttributeType<T>;
-
-template <typename T>
+template <typename Tag>
 struct tag_attribute {
-  using type = T;
-  static constexpr std::string_view name = "TagAttribute";
+  using tag_type = Tag;
+  static constexpr std::string_view name = "tag_attribute";
 };
 
-template <typename NameHolder>
+template <typename StringHolder>
 struct named_attribute {
-  static constexpr std::string_view name = NameHolder::value;
+  static constexpr std::string_view name = StringHolder::value;
 };
 
 template <typename... Attributes>
-  requires(attribute_type<Attributes> && ...)
-struct attribute_list {
-  using attributes = detail::TypeList<Attributes...>;
-  static constexpr std::size_t size = sizeof...(Attributes);
+  requires(detail::AttributeType<Attributes> && ...)
+class attribute_list {
+private:
+  using attributes_type = detail::TypeList<Attributes...>;
+  using internal_list = detail::AttributeList<Attributes...>;
+
+public:
+  static constexpr std::size_t size = internal_list::kSize;
 
   template <std::size_t I>
     requires(I < size)
-  using at = typename attributes::template At<I>;
+  using at = typename internal_list::template At<I>;
 
   template <typename T>
   static constexpr bool has() noexcept {
-    return detail::Contains<T, attributes>::value;
+    return internal_list::template Has<T>();
   }
 
   template <auto Value>
   static constexpr bool has_value() noexcept {
-    return detail::Contains<attribute<Value>, attributes>::value;
+    return internal_list::template HasValue<Value>();
   }
 
-  template <typename T>
+  template <typename Tag>
   static constexpr bool has_tag() noexcept {
-    return detail::Contains<tag_attribute<T>, attributes>::value;
+    return internal_list::template HasTag<Tag>();
   }
 
   template <typename NamedAttr>
   static constexpr bool has_named() noexcept {
-    return detail::Contains<NamedAttr, attributes>::value;
+    return detail::Contains<NamedAttr, attributes_type>::value;
   }
 
-  template <std::invocable<detail::Identity<Attributes>...> F>
+  template <typename F>
   static constexpr void for_each(F&& f) {
-    (f(detail::Identity<Attributes>{}), ...);
+    internal_list::ForEach(std::forward<F>(f));
   }
 };
 
-struct ReadOnlyTag {};
-struct WriteOnlyTag {};
-struct DeprecatedTag {};
-struct InternalTag {};
+using no_attributes = attribute_list<>;
 
-using read_only = tag_attribute<ReadOnlyTag>;
-using write_only = tag_attribute<WriteOnlyTag>;
-using deprecated = tag_attribute<DeprecatedTag>;
-using internal = tag_attribute<InternalTag>;
+struct read_only_tag {};
+struct write_only_tag {};
+struct deprecated_tag {};
+struct internal_tag {};
+struct validated_tag {};
+
+using read_only = tag_attribute<read_only_tag>;
+using write_only = tag_attribute<write_only_tag>;
+using deprecated = tag_attribute<deprecated_tag>;
+using internal = tag_attribute<internal_tag>;
+using validated = tag_attribute<validated_tag>;
 
 template <int Version>
-using since = attribute<Version>;
+using since = attribute_value<Version>;
 
-struct description_holder {
-  static constexpr std::string_view value = "Description";
-};
+using description = named_attribute<detail::DescriptionHolder>;
 
-using description = named_attribute<description_holder>;
+template <detail::CompileTimeString Desc>
+using description_with_value = named_attribute<detail::DescriptionValueHolder<Desc>>;
 
 }  // namespace ctti
-
-#define CTTI_NAMED_ATTRIBUTE(name) CTTI_DETAIL_NAMED_ATTRIBUTE(name)
-#define CTTI_DEFINE_ANNOTATED_SYMBOL(name, ...) CTTI_DETAIL_DEFINE_ANNOTATED_SYMBOL(name, __VA_ARGS__)
 
 #endif  // CTTI_ATTRIBUTES_HPP

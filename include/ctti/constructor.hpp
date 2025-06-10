@@ -25,46 +25,48 @@ template <typename T>
 concept aggregate_type = detail::AggregateType<T>;
 
 template <typename T>
-struct constructor_info {
+class constructor_info {
+private:
+  using internal_info = detail::ConstructorInfo<T>;
+
+public:
   using type = T;
 
   template <typename... Args>
     requires constructible<T, Args...>
   static constexpr T construct(Args&&... args) noexcept(nothrow_constructible<T, Args...>) {
-    return detail::ConstructorInfo<T>::Construct(std::forward<Args>(args)...);
+    return internal_info::Construct(std::forward<Args>(args)...);
   }
 
   template <typename... Args>
     requires constructible<T, Args...>
   static constexpr std::unique_ptr<T> make_unique(Args&&... args) {
-    return detail::ConstructorInfo<T>::MakeUnique(std::forward<Args>(args)...);
+    return internal_info::MakeUnique(std::forward<Args>(args)...);
   }
 
   template <typename... Args>
     requires constructible<T, Args...>
   static constexpr std::shared_ptr<T> make_shared(Args&&... args) {
-    return detail::ConstructorInfo<T>::MakeShared(std::forward<Args>(args)...);
+    return internal_info::MakeShared(std::forward<Args>(args)...);
   }
 
   template <typename... Args>
   static constexpr bool can_construct() noexcept {
-    return detail::ConstructorInfo<T>::template CanConstruct<Args...>();
+    return internal_info::template CanConstruct<Args...>();
   }
 
   template <typename... Args>
   static constexpr bool can_construct_nothrow() noexcept {
-    return detail::ConstructorInfo<T>::template CanConstructNothrow<Args...>();
+    return internal_info::template CanConstructNothrow<Args...>();
   }
 
-  static constexpr bool is_default_constructible() noexcept {
-    return detail::ConstructorInfo<T>::IsDefaultConstructible();
-  }
+  static constexpr bool is_default_constructible() noexcept { return internal_info::IsDefaultConstructible(); }
 
-  static constexpr bool is_copy_constructible() noexcept { return detail::ConstructorInfo<T>::IsCopyConstructible(); }
+  static constexpr bool is_copy_constructible() noexcept { return internal_info::IsCopyConstructible(); }
 
-  static constexpr bool is_move_constructible() noexcept { return detail::ConstructorInfo<T>::IsMoveConstructible(); }
+  static constexpr bool is_move_constructible() noexcept { return internal_info::IsMoveConstructible(); }
 
-  static constexpr bool is_aggregate() noexcept { return detail::ConstructorInfo<T>::IsAggregate(); }
+  static constexpr bool is_aggregate() noexcept { return internal_info::IsAggregate(); }
 };
 
 template <typename T>
@@ -78,17 +80,21 @@ constexpr constructor_info<T> get_constructor_info(type_tag<T>) noexcept {
 }
 
 template <typename T, typename... Args>
-struct constructor_signature {
+class constructor_signature {
+private:
+  using internal_signature = detail::ConstructorSignature<T, Args...>;
+
+public:
   using type = T;
   using args_tuple = std::tuple<Args...>;
-  static constexpr std::size_t arity = detail::ConstructorSignature<T, Args...>::kArity;
+  static constexpr std::size_t arity = internal_signature::kArity;
 
   template <std::size_t I>
     requires(I < arity)
-  using arg_type = typename detail::ConstructorSignature<T, Args...>::template ArgType<I>;
+  using arg_type = typename internal_signature::template ArgType<I>;
 
-  static constexpr bool is_valid = detail::ConstructorSignature<T, Args...>::kIsValid;
-  static constexpr bool is_nothrow = detail::ConstructorSignature<T, Args...>::kIsNothrow;
+  static constexpr bool is_valid = internal_signature::kIsValid;
+  static constexpr bool is_nothrow = internal_signature::kIsNothrow;
 };
 
 }  // namespace ctti

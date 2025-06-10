@@ -1,5 +1,5 @@
-#ifndef CTTI_DETAIL_HASH_HPP
-#define CTTI_DETAIL_HASH_HPP
+#ifndef CTTI_DETAIL_HASH_IMPL_HPP
+#define CTTI_DETAIL_HASH_IMPL_HPP
 
 #include <cstdint>
 #include <string_view>
@@ -18,10 +18,6 @@ constexpr HashType Fnv1aHash(std::string_view str, HashType hash = kFnvBasis) no
   return hash;
 }
 
-constexpr HashType Fnv1aHash(std::size_t size, const char* str, HashType hash = kFnvBasis) noexcept {
-  return size > 0 ? Fnv1aHash(size - 1, str + 1, (hash ^ static_cast<HashType>(*str)) * kFnvPrime) : hash;
-}
-
 template <std::size_t N>
 constexpr HashType Fnv1aHash(const char (&array)[N]) noexcept {
   return Fnv1aHash(std::string_view{array, N - 1});
@@ -29,4 +25,4 @@ constexpr HashType Fnv1aHash(const char (&array)[N]) noexcept {
 
 }  // namespace ctti::detail
 
-#endif  // CTTI_DETAIL_HASH_HPP
+#endif  // CTTI_DETAIL_HASH_IMPL_HPP

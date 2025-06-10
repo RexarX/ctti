@@ -5,30 +5,36 @@
 
 namespace ctti::detail {
 
-constexpr std::string_view FilterPrefix(std::string_view str, std::string_view prefix) noexcept {
-  if (str.size() >= prefix.size() && str.starts_with(prefix)) {
-    return str.substr(prefix.size());
+constexpr std::string_view TrimWhitespace(std::string_view str) noexcept {
+  while (!str.empty() && str.front() == ' ') {
+    str = str.substr(1);
+  }
+  while (!str.empty() && str.back() == ' ') {
+    str = str.substr(0, str.length() - 1);
   }
   return str;
 }
 
-constexpr std::string_view LeftPad(std::string_view str) noexcept {
-  if (!str.empty() && str.front() == ' ') {
-    return LeftPad(str.substr(1));
+constexpr std::string_view FilterPrefix(std::string_view str, std::string_view prefix) noexcept {
+  str = TrimWhitespace(str);
+  if (str.size() >= prefix.size() && str.starts_with(prefix)) {
+    auto remaining = str.substr(prefix.size());
+    return TrimWhitespace(remaining);
   }
   return str;
 }
 
 constexpr std::string_view FilterClass(std::string_view type_name) noexcept {
-  return LeftPad(FilterPrefix(LeftPad(type_name), "class"));
+  return FilterPrefix(type_name, "class");
 }
 
 constexpr std::string_view FilterStruct(std::string_view type_name) noexcept {
-  return LeftPad(FilterPrefix(LeftPad(type_name), "struct"));
+  return FilterPrefix(type_name, "struct");
 }
 
 constexpr std::string_view FilterTypenamePrefix(std::string_view type_name) noexcept {
-  return FilterStruct(FilterClass(type_name));
+  auto result = FilterStruct(FilterClass(type_name));
+  return TrimWhitespace(result);
 }
 
 constexpr std::size_t FindIth(std::string_view name, std::string_view substring, std::size_t index) {
@@ -56,7 +62,6 @@ constexpr std::string_view FilterEnumValue(std::string_view name) noexcept {
     return name;
   }
 
-  // Find the matching closing parenthesis
   std::size_t paren_count = 0;
   std::size_t close_paren = std::string_view::npos;
 

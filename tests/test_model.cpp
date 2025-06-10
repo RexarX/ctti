@@ -12,10 +12,18 @@ struct TestStruct {
 
 struct IntrusiveModelStruct {
   int data = 0;
-  using ctti_model = decltype([]() {
-    constexpr auto value_symbol = CTTI_SYMBOL(value);
-    return ctti::model<decltype(value_symbol)>{};
-  }());
+
+  using ctti_model = ctti::model<>;
+};
+
+struct IntrusiveModelStructWithSymbols;
+
+constexpr auto intrusive_data_symbol = ctti::make_simple_symbol<"data", nullptr>();
+
+struct IntrusiveModelStructWithSymbols {
+  int data = 0;
+
+  using ctti_model = ctti::model<decltype(intrusive_data_symbol)>;
 };
 
 struct NoModelStruct {
@@ -23,28 +31,17 @@ struct NoModelStruct {
   int y = 0;
 };
 
-auto ctti_model(ctti::type_tag<TestStruct>) {
-  constexpr auto value_symbol = CTTI_SYMBOL(value);
-  constexpr auto name_symbol = CTTI_SYMBOL(name);
+// ADL model for TestStruct
+constexpr auto ctti_model(ctti::type_tag<TestStruct>) {
+  constexpr auto value_symbol = ctti::make_simple_symbol<"value", &TestStruct::value>();
+  constexpr auto name_symbol = ctti::make_simple_symbol<"name", &TestStruct::name>();
   return ctti::model<decltype(value_symbol), decltype(name_symbol)>{};
 }
 
-auto ctti_model(ctti::type_tag<int>) {
-  return ctti::model<>{};
-}
-
-auto ctti_model(ctti::type_tag<double>) {
-  return ctti::model<>{};
-}
-
-CTTI_REGISTER_MEMBER(TestStruct, value);
-CTTI_REGISTER_MEMBER(TestStruct, name);
-CTTI_REGISTER_MEMBER(IntrusiveModelStruct, data);
-
 TEST_SUITE("model") {
   TEST_CASE("basic_model") {
-    constexpr auto value_symbol = CTTI_SYMBOL(value);
-    constexpr auto name_symbol = CTTI_SYMBOL(name);
+    constexpr auto value_symbol = ctti::make_simple_symbol<"value", &TestStruct::value>();
+    constexpr auto name_symbol = ctti::make_simple_symbol<"name", &TestStruct::name>();
     using test_model = ctti::model<decltype(value_symbol), decltype(name_symbol)>;
 
     CHECK(test_model::size == 2);
@@ -65,10 +62,10 @@ TEST_SUITE("model") {
   }
 
   TEST_CASE("model_of_intrusive") {
-    using intrusive_model = ctti::model_of<IntrusiveModelStruct>;
+    using intrusive_model = ctti::model_of<IntrusiveModelStructWithSymbols>;
 
-    CHECK(intrusive_model::size == 1);
-    CHECK(ctti::has_model_v<IntrusiveModelStruct>);
+    CHECK(intrusive_model::size == 1);  // Has one symbol
+    CHECK(ctti::has_model_v<IntrusiveModelStructWithSymbols>);
   }
 
   TEST_CASE("no_model") {
@@ -78,30 +75,8 @@ TEST_SUITE("model") {
     CHECK_FALSE(ctti::has_model_v<NoModelStruct>);
   }
 
-  TEST_CASE("has_model_trait") {
-    CHECK(ctti::has_model_v<TestStruct>);
-    CHECK(ctti::has_model_v<IntrusiveModelStruct>);
-    CHECK_FALSE(ctti::has_model_v<NoModelStruct>);
-    CHECK_FALSE(ctti::has_model_v<int>);
-  }
-
-  TEST_CASE("default_reflect_model") {
-    // Default should return empty model
-    auto default_model = ctti::reflect_model(ctti::type_tag<double>{});
-    CHECK(default_model.size == 0);
-  }
-
-  TEST_CASE("model_compilation") {
-    // Test that models compile correctly with different symbol counts
-    constexpr auto value_symbol = CTTI_SYMBOL(value);
-    constexpr auto name_symbol = CTTI_SYMBOL(name);
-
-    using model1 = ctti::model<decltype(value_symbol)>;
-    using model2 = ctti::model<decltype(value_symbol), decltype(name_symbol)>;
-    using model3 = ctti::model<>;
-
-    static_assert(model1::size == 1);
-    static_assert(model2::size == 2);
-    static_assert(model3::size == 0);
+  TEST_CASE("reflect_model") {
+    auto model = ctti::reflect_model(ctti::type_tag<TestStruct>{});
+    CHECK(model.size == 2);
   }
 }

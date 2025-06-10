@@ -33,7 +33,8 @@ void Map(const Source& source, Sink& sink) noexcept {
 }
 
 template <typename SourceSymbol, typename SinkSymbol, typename Function = DefaultSymbolMappingFunction>
-struct SymbolMapping {
+class SymbolMapping {
+public:
   constexpr SymbolMapping(Function function = {}) : function_(function) {}
 
   template <typename Source, typename Sink>

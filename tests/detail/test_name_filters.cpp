@@ -6,20 +6,20 @@
 
 TEST_SUITE("detail::name_filters") {
   TEST_CASE("filter_prefix") {
-    CHECK(ctti::detail::FilterPrefix("class MyClass", "class") == " MyClass");
-    CHECK(ctti::detail::FilterPrefix("struct MyStruct", "struct") == " MyStruct");
+    CHECK(ctti::detail::FilterPrefix("class MyClass", "class") == "MyClass");
+    CHECK(ctti::detail::FilterPrefix("struct MyStruct", "struct") == "MyStruct");
     CHECK(ctti::detail::FilterPrefix("MyClass", "class") == "MyClass");
     CHECK(ctti::detail::FilterPrefix("", "class") == "");
     CHECK(ctti::detail::FilterPrefix("MyClass", "") == "MyClass");
   }
 
-  TEST_CASE("left_pad") {
-    CHECK(ctti::detail::LeftPad("   hello") == "hello");
-    CHECK(ctti::detail::LeftPad(" world") == "world");
-    CHECK(ctti::detail::LeftPad("no_spaces") == "no_spaces");
-    CHECK(ctti::detail::LeftPad("") == "");
-    CHECK(ctti::detail::LeftPad("   ") == "");
-    CHECK(ctti::detail::LeftPad("  a  ") == "a  ");
+  TEST_CASE("trim_whitespace") {
+    CHECK(ctti::detail::TrimWhitespace("   hello") == "hello");
+    CHECK(ctti::detail::TrimWhitespace(" world") == "world");
+    CHECK(ctti::detail::TrimWhitespace("no_spaces") == "no_spaces");
+    CHECK(ctti::detail::TrimWhitespace("") == "");
+    CHECK(ctti::detail::TrimWhitespace("   ") == "");
+    CHECK(ctti::detail::TrimWhitespace("  a  ") == "a");
   }
 
   TEST_CASE("filter_class") {
@@ -103,30 +103,26 @@ TEST_SUITE("detail::name_filters") {
   }
 
   TEST_CASE("complex_filtering_chain") {
-    // Test chaining multiple filters
     std::string_view input = "  class   MyNamespace::MyClass  ";
-    auto step1 = ctti::detail::LeftPad(input);
+    auto step1 = ctti::detail::TrimWhitespace(input);
     auto step2 = ctti::detail::FilterClass(step1);
 
-    CHECK(step1 == "class   MyNamespace::MyClass  ");
-    CHECK(step2 == "MyNamespace::MyClass  ");
+    CHECK(step1 == "class   MyNamespace::MyClass");
+    CHECK(step2 == "MyNamespace::MyClass");
 
-    // Test the combined filter
     auto result = ctti::detail::FilterTypenamePrefix(input);
-    CHECK(result == "MyNamespace::MyClass  ");
+    CHECK(result == "MyNamespace::MyClass");
   }
 
   TEST_CASE("edge_cases") {
     // Empty strings
     CHECK(ctti::detail::FilterPrefix("", "prefix") == "");
-    CHECK(ctti::detail::LeftPad("") == "");
     CHECK(ctti::detail::FilterClass("") == "");
     CHECK(ctti::detail::FilterStruct("") == "");
     CHECK(ctti::detail::FilterEnumValue("") == "");
 
     // Single characters
     CHECK(ctti::detail::FilterPrefix("a", "a") == "");
-    CHECK(ctti::detail::LeftPad(" ") == "");
     CHECK(ctti::detail::FindIth("a", "a", 0) == 0);
 
     // Longer prefix than string

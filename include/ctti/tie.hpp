@@ -5,9 +5,9 @@
 
 namespace ctti {
 
-template <typename... Symbols, typename... Refs>
-constexpr detail::TieType<detail::TypeList<Symbols...>, detail::TypeList<Refs...>> tie(Refs&... refs) {
-  return detail::Tie<Symbols...>(refs...);
+template <auto... Symbols, typename... Refs>
+constexpr detail::TieType<detail::TypeList<decltype(Symbols)...>, detail::TypeList<Refs...>> tie(Refs&... refs) {
+  return detail::Tie<decltype(Symbols)...>(refs...);
 }
 
 }  // namespace ctti

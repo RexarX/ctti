@@ -41,9 +41,27 @@ TEST_SUITE("static_value") {
 
   TEST_CASE("macro_usage") {
     constexpr int test_value = 123;
-    constexpr auto val = CTTI_STATIC_VALUE(test_value);
+    constexpr auto val = ctti::make_static_value<test_value>();
 
     CHECK(val.get() == 123);
     CHECK(std::same_as<decltype(val)::value_type, int>);
+  }
+
+  TEST_CASE("different_types") {
+    constexpr auto bool_val = ctti::static_value<bool, true>{};
+    constexpr auto char_val = ctti::static_value<char, 'X'>{};
+    constexpr auto double_val = ctti::static_value<double, 3.14>{};
+
+    CHECK(bool_val.get() == true);
+    CHECK(char_val.get() == 'X');
+    CHECK(double_val.get() == 3.14);
+  }
+
+  TEST_CASE("constexpr_evaluation") {
+    constexpr auto val = ctti::static_value<int, 999>{};
+    static_assert(val.get() == 999);
+    static_assert(val == 999);
+
+    CHECK(val.get() == 999);
   }
 }

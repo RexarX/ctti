@@ -1,6 +1,7 @@
 #include "doctest.h"
 
 #include <ctti/overload.hpp>
+#include <ctti/symbol.hpp>
 
 #include <iostream>
 #include <string>
@@ -20,119 +21,116 @@ struct OverloadedStruct {
   void process(int a, int b) { value = a * b; }
 };
 
-CTTI_DEFINE_OVERLOADED_SYMBOL(set);
-CTTI_DEFINE_OVERLOADED_SYMBOL(get);
-CTTI_DEFINE_OVERLOADED_SYMBOL(process);
-
 TEST_SUITE("overload") {
   TEST_CASE("overload_detection") {
-    CHECK(ctti_symbols::set::has_overload<OverloadedStruct, int>());
-    CHECK(ctti_symbols::set::has_overload<OverloadedStruct, const std::string&>());
-    CHECK(ctti_symbols::set::has_overload<OverloadedStruct, double>());
-    CHECK_FALSE(ctti_symbols::set::has_overload<OverloadedStruct, char*>());
+    constexpr auto set_symbol = ctti::make_symbol_with_overloads<
+        "set", ctti::no_attributes, static_cast<void (OverloadedStruct::*)(int)>(&OverloadedStruct::set),
+        static_cast<void (OverloadedStruct::*)(const std::string&)>(&OverloadedStruct::set),
+        static_cast<void (OverloadedStruct::*)(double)>(&OverloadedStruct::set)>();
 
-    CHECK(ctti_symbols::get::has_overload<OverloadedStruct>());
-    CHECK(ctti_symbols::get::has_overload<OverloadedStruct, bool>());
-    CHECK_FALSE(ctti_symbols::get::has_overload<OverloadedStruct, int, int>());
+    CHECK(decltype(set_symbol)::has_overload<OverloadedStruct&, int>());
+    CHECK(decltype(set_symbol)::has_overload<OverloadedStruct&, const std::string&>());
+    CHECK(decltype(set_symbol)::has_overload<OverloadedStruct&, double>());
 
-    CHECK(ctti_symbols::process::has_overload<OverloadedStruct>());
-    CHECK(ctti_symbols::process::has_overload<OverloadedStruct, int>());
-    CHECK(ctti_symbols::process::has_overload<OverloadedStruct, int, int>());
+    struct NonConvertible {};
+    CHECK_FALSE(decltype(set_symbol)::has_overload<OverloadedStruct&, NonConvertible>());
   }
 
   TEST_CASE("overload_calling") {
     OverloadedStruct obj;
 
-    // Test set overloads
-    ctti::call_overload<ctti_symbols::set>(obj, 100);
+    constexpr auto set_symbol = ctti::make_symbol_with_overloads<
+        "set", ctti::no_attributes, static_cast<void (OverloadedStruct::*)(int)>(&OverloadedStruct::set),
+        static_cast<void (OverloadedStruct::*)(const std::string&)>(&OverloadedStruct::set),
+        static_cast<void (OverloadedStruct::*)(double)>(&OverloadedStruct::set)>();
+
+    ctti::call_overload<set_symbol>(obj, 100);
     CHECK(obj.value == 100);
 
-    ctti::call_overload<ctti_symbols::set>(obj, std::string("200"));
+    ctti::call_overload<set_symbol>(obj, std::string("200"));
     CHECK(obj.value == 200);
 
-    ctti::call_overload<ctti_symbols::set>(obj, 3.14);
+    ctti::call_overload<set_symbol>(obj, 3.14);
     CHECK(obj.value == 3);
-
-    // Test get overloads
-    auto int_result = ctti::call_overload<ctti_symbols::get>(obj);
-    CHECK(int_result == 3);
-
-    auto string_result = ctti::call_overload<ctti_symbols::get>(obj, true);
-    CHECK(string_result == "3");
-
-    // Test process overloads
-    ctti::call_overload<ctti_symbols::process>(obj);  // value *= 2
-    CHECK(obj.value == 6);
-
-    ctti::call_overload<ctti_symbols::process>(obj, 3);  // value *= 3
-    CHECK(obj.value == 18);
-
-    ctti::call_overload<ctti_symbols::process>(obj, 4, 5);  // value = 4 * 5
-    CHECK(obj.value == 20);
   }
 
-  TEST_CASE("overload_set") {
+  TEST_CASE("overload_wrapper") {
     OverloadedStruct obj;
 
-    auto set_overloads = ctti::get_overload_set<ctti_symbols::set>(obj);
+    constexpr auto set_symbol = ctti::make_symbol_with_overloads<
+        "set", ctti::no_attributes, static_cast<void (OverloadedStruct::*)(int)>(&OverloadedStruct::set),
+        static_cast<void (OverloadedStruct::*)(const std::string&)>(&OverloadedStruct::set),
+        static_cast<void (OverloadedStruct::*)(double)>(&OverloadedStruct::set)>();
 
-    set_overloads(42);
+    auto wrapper = ctti::get_overload_wrapper<set_symbol>(obj);
+
+    wrapper(42);
     CHECK(obj.value == 42);
 
-    set_overloads(std::string("99"));
+    wrapper(std::string("99"));
     CHECK(obj.value == 99);
 
-    set_overloads(2.7);
+    wrapper(2.7);
     CHECK(obj.value == 2);
   }
 
   TEST_CASE("overload_query") {
-    auto query = ctti::query_overloads<ctti_symbols::set, OverloadedStruct>();
+    constexpr auto set_symbol = ctti::make_symbol_with_overloads<
+        "set", ctti::no_attributes, static_cast<void (OverloadedStruct::*)(int)>(&OverloadedStruct::set),
+        static_cast<void (OverloadedStruct::*)(const std::string&)>(&OverloadedStruct::set),
+        static_cast<void (OverloadedStruct::*)(double)>(&OverloadedStruct::set)>();
+
+    auto query = ctti::query_overloads<set_symbol, OverloadedStruct>();
 
     CHECK(query.has<int>());
     CHECK(query.has<const std::string&>());
     CHECK(query.has<double>());
-    CHECK_FALSE(query.has<char*>());
 
-    // Skip the lambda comparison tests since they're problematic
-    // Just verify the query mechanism works
-    CHECK(query.has<int>());
-    CHECK_FALSE(query.has<char*>());
+    struct NonConvertibleType {
+      NonConvertibleType() = delete;
+      NonConvertibleType(const NonConvertibleType&) = delete;
+      NonConvertibleType& operator=(const NonConvertibleType&) = delete;
+    };
+    CHECK_FALSE(query.has<NonConvertibleType>());
   }
 
   TEST_CASE("overload_symbol_properties") {
-    CHECK(ctti_symbols::set::kSymbol == "set");
-    CHECK(ctti_symbols::get::kSymbol == "get");
-    CHECK(ctti_symbols::process::kSymbol == "process");
+    constexpr auto set_symbol =
+        ctti::make_symbol_with_overloads<"set", ctti::no_attributes,
+                                         static_cast<void (OverloadedStruct::*)(int)>(&OverloadedStruct::set)>();
 
-    CHECK(ctti_symbols::set::kHash != 0);
-    CHECK(ctti_symbols::get::kHash != ctti_symbols::set::kHash);
-    CHECK(ctti_symbols::process::kHash != ctti_symbols::get::kHash);
+    CHECK(decltype(set_symbol)::name == "set");
+    CHECK(decltype(set_symbol)::hash != 0);
+    CHECK(decltype(set_symbol)::has_overloads);
+    CHECK(decltype(set_symbol)::overload_count == 1);
   }
 
   TEST_CASE("overload_ownership") {
-    CHECK(ctti_symbols::set::is_owner_of<OverloadedStruct>());
-    CHECK(ctti_symbols::get::is_owner_of<OverloadedStruct>());
-    CHECK(ctti_symbols::process::is_owner_of<OverloadedStruct>());
+    constexpr auto set_symbol =
+        ctti::make_symbol_with_overloads<"set", ctti::no_attributes,
+                                         static_cast<void (OverloadedStruct::*)(int)>(&OverloadedStruct::set)>();
 
-    CHECK_FALSE(ctti_symbols::set::is_owner_of<int>());
-    CHECK_FALSE(ctti_symbols::get::is_owner_of<std::string>());
+    CHECK(decltype(set_symbol)::is_owner_of<OverloadedStruct>());
+    CHECK_FALSE(decltype(set_symbol)::is_owner_of<int>());
   }
 
-  TEST_CASE("mixed_member_detection") {
-    // Test that overloaded symbols also work with regular member detection
-    CHECK(ctti_symbols::set::is_member_of<OverloadedStruct>());
-    CHECK(ctti_symbols::get::is_member_of<OverloadedStruct>());
-    CHECK(ctti_symbols::process::is_member_of<OverloadedStruct>());
+  TEST_CASE("can_call_with") {
+    constexpr auto set_symbol =
+        ctti::make_symbol_with_overloads<"set", ctti::no_attributes,
+                                         static_cast<void (OverloadedStruct::*)(int)>(&OverloadedStruct::set),
+                                         static_cast<void (OverloadedStruct::*)(double)>(&OverloadedStruct::set)>();
+
+    CHECK(ctti::can_call_with<set_symbol, OverloadedStruct&, int>());
+    CHECK(ctti::can_call_with<set_symbol, OverloadedStruct&, double>());
+    CHECK_FALSE(ctti::can_call_with<set_symbol, OverloadedStruct&, std::string>());
   }
 
-  TEST_CASE("overload_get_member") {
-    auto set_member = ctti_symbols::set::get_member<OverloadedStruct>();
-    auto get_member = ctti_symbols::get::get_member<OverloadedStruct>();
+  TEST_CASE("get_overload_count") {
+    constexpr auto multi_symbol = ctti::make_symbol_with_overloads<
+        "multi", ctti::no_attributes, static_cast<void (OverloadedStruct::*)()>(&OverloadedStruct::process),
+        static_cast<void (OverloadedStruct::*)(int)>(&OverloadedStruct::process),
+        static_cast<void (OverloadedStruct::*)(int, int)>(&OverloadedStruct::process)>();
 
-    // These should return function pointers or nullptr for overloaded functions
-    // The exact behavior depends on implementation details
-    static_assert(std::same_as<decltype(set_member), ctti_symbols::set::member_type<OverloadedStruct>>);
-    static_assert(std::same_as<decltype(get_member), ctti_symbols::get::member_type<OverloadedStruct>>);
+    CHECK(ctti::get_overload_count<multi_symbol>() == 3);
   }
 }

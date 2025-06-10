@@ -13,62 +13,138 @@
 #error "No support for this compiler."
 #endif
 
-#if defined(__clang__)
-#define CTTI_HAS_ENUM_AWARE_PRETTY_FUNCTION 1
-#elif defined(__GNUC__) && (__GNUC__ >= 9)
-#define CTTI_HAS_ENUM_AWARE_PRETTY_FUNCTION 1
-#endif
+namespace ctti::detail {
 
-namespace ctti::detail::pretty_function {
+struct PrettyFunction {
+  template <typename T>
+  static constexpr std::string_view Type() noexcept {
+    return CTTI_PRETTY_FUNCTION;
+  }
+
+  template <typename T, T ValueParam>
+  static constexpr std::string_view Value() noexcept {
+    return CTTI_PRETTY_FUNCTION;
+  }
+};
+
+inline namespace pretty_function {
+
+template <typename T>
+constexpr std::string_view type() noexcept {
+  return PrettyFunction::Type<T>();
+}
+
+template <typename T, T ValueParam>
+constexpr std::string_view value() noexcept {
+  return PrettyFunction::Value<T, ValueParam>();
+}
 
 template <typename T>
 constexpr std::string_view Type() noexcept {
-  return CTTI_PRETTY_FUNCTION;
+  return PrettyFunction::Type<T>();
 }
 
 template <typename T, T ValueParam>
 constexpr std::string_view Value() noexcept {
-  return CTTI_PRETTY_FUNCTION;
+  return PrettyFunction::Value<T, ValueParam>();
 }
 
-}  // namespace ctti::detail::pretty_function
+}  // namespace pretty_function
 
+constexpr bool IsAlphaNumeric(char c) noexcept {
+  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
+}
+
+constexpr bool IsValidIdentifierChar(char c) noexcept {
+  return IsAlphaNumeric(c) || c == '_';
+}
+
+constexpr std::string_view FindTypeInSignature(std::string_view signature, std::string_view known_type) noexcept {
+  const auto pos = signature.find(known_type);
+  if (pos == std::string_view::npos) {
+    return {};
+  }
+
+  const bool is_start_valid = (pos == 0) || !IsValidIdentifierChar(signature[pos - 1]);
+  const bool is_end_valid =
+      (pos + known_type.size() >= signature.size()) || !IsValidIdentifierChar(signature[pos + known_type.size()]);
+
+  return (is_start_valid && is_end_valid) ? known_type : std::string_view{};
+}
+
+constexpr std::pair<std::size_t, std::size_t> DetectPrettyFunctionOffsetsForCompiler() noexcept {
 #if defined(__clang__)
-#define CTTI_TYPE_PRETTY_FUNCTION_PREFIX "std::string_view ctti::detail::pretty_function::Type() [T = "
-#define CTTI_TYPE_PRETTY_FUNCTION_SUFFIX "]"
+  constexpr std::string_view test_signature = PrettyFunction::Type<int>();
+
+  constexpr auto eq_pos = test_signature.find(" = ");
+  if (eq_pos != std::string_view::npos) {
+    constexpr auto bracket_pos = test_signature.find(']', eq_pos);
+    if (bracket_pos != std::string_view::npos) {
+      return {eq_pos + 3, test_signature.size() - bracket_pos};
+    }
+  }
+
+  constexpr auto int_pos = test_signature.find("int");
+  if (int_pos != std::string_view::npos) {
+    constexpr bool is_start_valid = (int_pos == 0) || !IsValidIdentifierChar(test_signature[int_pos - 1]);
+    constexpr bool is_end_valid =
+        (int_pos + 3 >= test_signature.size()) || !IsValidIdentifierChar(test_signature[int_pos + 3]);
+    if (is_start_valid && is_end_valid) {
+      return {int_pos, test_signature.size() - int_pos - 3};
+    }
+  }
+
+  return {75, 1};
+
 #elif defined(__GNUC__) && !defined(__clang__)
-#define CTTI_TYPE_PRETTY_FUNCTION_PREFIX "constexpr std::string_view ctti::detail::pretty_function::Type() [with T = "
-#define CTTI_TYPE_PRETTY_FUNCTION_SUFFIX "]"
-#elif defined(_MSC_VER)
-#define CTTI_TYPE_PRETTY_FUNCTION_PREFIX \
-  "class std::basic_string_view<char,struct std::char_traits<char> > __cdecl ctti::detail::pretty_function::Type<"
-#define CTTI_TYPE_PRETTY_FUNCTION_SUFFIX ">(void)"
+  constexpr std::string_view test_signature = PrettyFunction::Type<int>();
+
+  constexpr auto with_pos = test_signature.find("with ");
+  if (with_pos != std::string_view::npos) {
+    constexpr auto eq_pos = test_signature.find(" = ", with_pos);
+    if (eq_pos != std::string_view::npos) {
+      constexpr auto bracket_pos = test_signature.find(']', eq_pos);
+      if (bracket_pos != std::string_view::npos) {
+        return {eq_pos + 3, test_signature.size() - bracket_pos};
+      }
+    }
+  }
+
+  constexpr auto int_pos = test_signature.find("int");
+  if (int_pos != std::string_view::npos) {
+    constexpr bool is_start_valid = (int_pos == 0) || !IsValidIdentifierChar(test_signature[int_pos - 1]);
+    constexpr bool is_end_valid =
+        (int_pos + 3 >= test_signature.size()) || !IsValidIdentifierChar(test_signature[int_pos + 3]);
+    if (is_start_valid && is_end_valid) {
+      return {int_pos, test_signature.size() - int_pos - 3};
+    }
+  }
+
+  return {81, 1};
+
+#elif defined(_MSC_VER) && !defined(__clang__)
+  constexpr std::string_view test_signature = PrettyFunction::Type<int>();
+
+  // MSVC format is typically: "return_type __cdecl function_name<type>(void)"
+  // Look for the last '<' and first '>' to find the type
+  constexpr auto last_angle_start = test_signature.rfind('<');
+  constexpr auto first_angle_end = test_signature.find('>', last_angle_start);
+  if (last_angle_start != std::string_view::npos && first_angle_end != std::string_view::npos) {
+    return {last_angle_start + 1, test_signature.size() - first_angle_end};
+  }
+
+  // Fallback values for MSVC
+  return {84, 7};
+
 #else
-#error "No support for this compiler."
+  return {0, 0};
 #endif
+}
 
-#define CTTI_TYPE_PRETTY_FUNCTION_LEFT (sizeof(CTTI_TYPE_PRETTY_FUNCTION_PREFIX) - 1)
-#define CTTI_TYPE_PRETTY_FUNCTION_RIGHT (sizeof(CTTI_TYPE_PRETTY_FUNCTION_SUFFIX) - 1)
+constexpr std::pair<std::size_t, std::size_t> kPrettyFunctionOffsets = DetectPrettyFunctionOffsetsForCompiler();
+constexpr std::size_t kTypePrettyFunctionLeft = kPrettyFunctionOffsets.first;
+constexpr std::size_t kTypePrettyFunctionRight = kPrettyFunctionOffsets.second;
 
-#if defined(__clang__)
-#define CTTI_VALUE_PRETTY_FUNCTION_PREFIX "std::string_view ctti::detail::pretty_function::Value() [T = "
-#define CTTI_VALUE_PRETTY_FUNCTION_SEPARATOR ", ValueParam = "
-#define CTTI_VALUE_PRETTY_FUNCTION_SUFFIX "]"
-#elif defined(__GNUC__) && !defined(__clang__)
-#define CTTI_VALUE_PRETTY_FUNCTION_PREFIX "constexpr std::string_view ctti::detail::pretty_function::Value() [with T = "
-#define CTTI_VALUE_PRETTY_FUNCTION_SEPARATOR "; T ValueParam = "
-#define CTTI_VALUE_PRETTY_FUNCTION_SUFFIX "]"
-#elif defined(_MSC_VER)
-#define CTTI_VALUE_PRETTY_FUNCTION_PREFIX \
-  "class std::basic_string_view<char,struct std::char_traits<char> > __cdecl ctti::detail::pretty_function::Value<"
-#define CTTI_VALUE_PRETTY_FUNCTION_SEPARATOR ","
-#define CTTI_VALUE_PRETTY_FUNCTION_SUFFIX ">(void)"
-#else
-#error "No support for this compiler."
-#endif
-
-#define CTTI_VALUE_PRETTY_FUNCTION_LEFT (sizeof(CTTI_VALUE_PRETTY_FUNCTION_PREFIX) - 1)
-#define CTTI_VALUE_PRETTY_FUNCTION_SEPARATION (sizeof(CTTI_VALUE_PRETTY_FUNCTION_SEPARATOR) - 1)
-#define CTTI_VALUE_PRETTY_FUNCTION_RIGHT (sizeof(CTTI_VALUE_PRETTY_FUNCTION_SUFFIX) - 1)
+}  // namespace ctti::detail
 
 #endif  // CTTI_DETAIL_PRETTY_FUNCTION_HPP

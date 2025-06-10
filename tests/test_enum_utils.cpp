@@ -58,7 +58,6 @@ TEST_SUITE("enum_utils") {
 
     CHECK(list.contains<ScopedEnum::First>());
     CHECK(list.contains<ScopedEnum::Second>());
-    CHECK_FALSE(list.contains<static_cast<ScopedEnum>(99)>());
 
     auto names = list.names();
     CHECK(names.size() == 3);

@@ -41,17 +41,24 @@ private:
 };
 
 constexpr TypeIndex IdFromName(std::string_view type_name) noexcept {
-  return Fnv1aHash(type_name);
+  return TypeIndex{Fnv1aHash(type_name)};
 }
 
 template <typename T>
 constexpr TypeId TypeIdOf() noexcept {
-  return TypeId{NameOfImpl<T>::Apply()};
+  constexpr auto type_name = NameOfImpl<T>::Apply();
+
+  static_assert(type_name != "invalid_signature", "Failed to extract type name");
+  static_assert(type_name != "unsupported_compiler", "Compiler not supported for type name extraction");
+  static_assert(!type_name.empty(), "Empty type name extracted");
+
+  return TypeId{type_name};
 }
 
 template <typename T>
 constexpr TypeIndex TypeIndexOf() noexcept {
-  return {IdFromName(NameOfImpl<T>::Apply())};
+  constexpr auto type_name = NameOfImpl<T>::Apply();
+  return TypeIndex{Fnv1aHash(type_name)};
 }
 
 }  // namespace ctti::detail

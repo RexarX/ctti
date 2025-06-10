@@ -6,6 +6,10 @@
 namespace ctti {
 
 struct type_id {
+private:
+  detail::TypeId impl_;
+
+public:
   constexpr type_id() noexcept = default;
   constexpr explicit type_id(std::string_view name) noexcept : impl_(name) {}
   constexpr type_id(const detail::TypeId& impl) noexcept : impl_(impl) {}
@@ -15,12 +19,13 @@ struct type_id {
 
   constexpr auto operator<=>(const type_id&) const noexcept = default;
   constexpr bool operator==(const type_id&) const noexcept = default;
-
-private:
-  detail::TypeId impl_;
 };
 
 struct type_index {
+private:
+  detail::TypeIndex impl_;
+
+public:
   constexpr type_index(std::uint64_t hash) noexcept : impl_(hash) {}
   constexpr type_index(const type_id& id) noexcept : impl_(id.hash()) {}
   constexpr type_index(const detail::TypeIndex& impl) noexcept : impl_(impl) {}
@@ -29,9 +34,6 @@ struct type_index {
 
   constexpr auto operator<=>(const type_index&) const noexcept = default;
   constexpr bool operator==(const type_index&) const noexcept = default;
-
-private:
-  detail::TypeIndex impl_;
 };
 
 constexpr type_index id_from_name(std::string_view type_name) noexcept {

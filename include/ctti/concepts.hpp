@@ -2,17 +2,16 @@
 #define CTTI_CONCEPTS_HPP
 
 #include <ctti/detail/concepts_impl.hpp>
+#include <ctti/detail/meta.hpp>
+#include <ctti/model.hpp>
 
 namespace ctti {
 
 template <typename T>
-concept reflectable = detail::Reflectable<T>;
+concept reflectable_type = detail::Reflectable<T>;
 
 template <typename T>
 concept has_custom_name_of = detail::HasCustomNameOf<T>;
-
-template <typename T>
-concept enum_type = detail::EnumType<T>;
 
 template <typename Symbol, typename Type>
 concept symbol_member_of = detail::SymbolMemberOf<Symbol, Type>;

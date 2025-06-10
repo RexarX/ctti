@@ -10,10 +10,11 @@
 namespace ctti::detail {
 
 template <typename Symbols, typename Refs>
-struct TieType;
+class TieType;
 
 template <typename... Symbols, typename... Refs>
-struct TieType<TypeList<Symbols...>, TypeList<Refs...>> {
+class TieType<TypeList<Symbols...>, TypeList<Refs...>> {
+public:
   constexpr TieType(Refs&... refs) noexcept : refs_(refs...) {}
 
   template <typename T>
@@ -42,7 +43,6 @@ private:
         }
       }
     }
-    // When Symbol is not a member or member_ptr is nullptr, do nothing
   }
 
   template <typename T, std::size_t... Indices>

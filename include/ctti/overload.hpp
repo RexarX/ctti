@@ -1,44 +1,83 @@
 #ifndef CTTI_OVERLOAD_HPP
 #define CTTI_OVERLOAD_HPP
 
-#include <ctti/detail/overload_impl.hpp>
+#include <ctti/detail/member_traits.hpp>
+#include <ctti/symbol.hpp>
+
+#include <concepts>
+#include <type_traits>
 
 namespace ctti {
 
-template <typename Symbol, typename T, typename... Args>
-  requires requires { detail::CallOverload<Symbol>(std::declval<T>(), std::declval<Args>()...); }
+template <auto Symbol, typename T, typename... Args>
+  requires(decltype(Symbol)::template has_overload<T, Args...>())
 constexpr decltype(auto) call_overload(T&& obj, Args&&... args) {
-  return detail::CallOverload<Symbol>(std::forward<T>(obj), std::forward<Args>(args)...);
+  return decltype(Symbol)::template call<T, Args...>(std::forward<T>(obj), std::forward<Args>(args)...);
 }
 
-template <typename Symbol, typename T>
-using overload_set = detail::OverloadSet<Symbol, T>;
+template <auto Symbol, typename T>
+struct overload_wrapper {
+  T& obj_;
 
-template <typename Symbol, typename T>
-constexpr overload_set<Symbol, T> get_overload_set(T& obj) noexcept {
-  return detail::GetOverloadSet<Symbol, T>(obj);
+  template <typename... Args>
+    requires(decltype(Symbol)::template has_overload<T&, Args...>())
+  constexpr decltype(auto) operator()(Args&&... args) const {
+    return call_overload<Symbol>(obj_, std::forward<Args>(args)...);
+  }
+};
+
+template <auto Symbol, typename T>
+constexpr overload_wrapper<Symbol, T> get_overload_wrapper(T& obj) noexcept {
+  return {obj};
 }
 
-template <typename Symbol, typename T>
+template <auto Symbol, typename T>
 struct overload_query {
   template <typename... Args>
   static constexpr bool has() noexcept {
-    return detail::OverloadQuery<Symbol, T>::template Has<Args...>();
+    return decltype(Symbol)::template has_overload<T, Args...>();
   }
 
   template <typename... Args>
   static constexpr auto get() noexcept {
-    return detail::OverloadQuery<Symbol, T>::template Get<Args...>();
+    if constexpr (has<Args...>()) {
+      return decltype(Symbol)::template get_member<T>();
+    } else {
+      return nullptr;
+    }
   }
 };
 
-template <typename Symbol, typename T>
+template <auto Symbol, typename T>
 constexpr overload_query<Symbol, T> query_overloads() noexcept {
   return {};
 }
 
-}  // namespace ctti
+template <typename ReturnType, typename... Args>
+struct overload_signature {
+  using return_type = ReturnType;
+  using args_tuple = std::tuple<Args...>;
+  static constexpr std::size_t arity = sizeof...(Args);
 
-#define CTTI_DEFINE_OVERLOADED_SYMBOL(name) CTTI_DETAIL_DEFINE_OVERLOADED_SYMBOL(name)
+  template <std::size_t I>
+    requires(I < arity)
+  using arg_type = std::tuple_element_t<I, args_tuple>;
+};
+
+template <typename T>
+concept has_overloads = T::has_overloads;
+
+template <auto Symbol>
+  requires(has_overloads<decltype(Symbol)>)
+constexpr std::size_t get_overload_count() noexcept {
+  return decltype(Symbol)::overload_count;
+}
+
+template <auto Symbol, typename... Args>
+constexpr bool can_call_with() noexcept {
+  return decltype(Symbol)::template has_overload<Args...>();
+}
+
+}  // namespace ctti
 
 #endif  // CTTI_OVERLOAD_HPP

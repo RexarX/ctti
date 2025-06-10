@@ -7,9 +7,15 @@
 namespace ctti {
 
 template <typename... Symbols>
-using model = detail::Model<Symbols...>;
+class model {
+private:
+  using internal_model = detail::Model<Symbols...>;
 
-// Forward to the ADL mechanism
+public:
+  using symbol_list = typename internal_model::SymbolList;
+  static constexpr std::size_t size = internal_model::kSize;
+};
+
 template <typename T>
 constexpr auto reflect_model(type_tag<T> tag) {
   return ctti_model(tag);
@@ -19,7 +25,12 @@ template <typename T>
 using model_of = detail::ModelOf<T>;
 
 template <typename T>
-constexpr bool has_model_v = detail::HasModel<T>::value;
+constexpr bool has_model_v = detail::HasModel<T>::kValue;
+
+template <typename T>
+constexpr ctti::model<> ctti_model(ctti::type_tag<T>) {
+  return {};
+}
 
 }  // namespace ctti
 

@@ -51,7 +51,6 @@ TEST_SUITE("type_id") {
   TEST_CASE("type_id_ordering") {
     auto int_id = ctti::type_id_of<int>();
     auto double_id = ctti::type_id_of<double>();
-    auto string_id = ctti::type_id_of<std::string>();
 
     // Ordering should be consistent
     auto cmp1 = int_id <=> double_id;
@@ -137,5 +136,25 @@ TEST_SUITE("type_id") {
     CHECK(enum_id.name().find("CustomEnum") != std::string_view::npos);
     CHECK(enum_index.hash() != 0);
     CHECK(enum_index.hash() == enum_id.hash());
+  }
+
+  TEST_CASE("cv_qualified_types") {
+    auto const_id = ctti::type_id_of<const int>();
+    auto volatile_id = ctti::type_id_of<volatile int>();
+    auto plain_id = ctti::type_id_of<int>();
+
+    CHECK(const_id != plain_id);
+    CHECK(volatile_id != plain_id);
+    CHECK(const_id != volatile_id);
+  }
+
+  TEST_CASE("pointer_types") {
+    auto ptr_id = ctti::type_id_of<int*>();
+    auto ref_id = ctti::type_id_of<int&>();
+    auto value_id = ctti::type_id_of<int>();
+
+    CHECK(ptr_id != value_id);
+    CHECK(ref_id != value_id);
+    CHECK(ptr_id != ref_id);
   }
 }

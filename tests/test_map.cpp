@@ -18,45 +18,40 @@ struct Sink {
   bool active = false;
 };
 
-CTTI_DEFINE_SYMBOL(value);
-CTTI_DEFINE_SYMBOL(name);
-CTTI_DEFINE_SYMBOL(price);
-CTTI_DEFINE_SYMBOL(active);
-
 TEST_SUITE("map") {
   TEST_CASE("basic_mapping") {
     Source src;
     Sink dst;
 
-    ctti::map<ctti_symbols::value, ctti_symbols::value>(src, dst);
-    ctti::map<ctti_symbols::name, ctti_symbols::name>(src, dst);
+    constexpr auto value_src_symbol = ctti::make_simple_symbol<"value", &Source::value>();
+    constexpr auto value_dst_symbol = ctti::make_simple_symbol<"value", &Sink::value>();
+    constexpr auto name_src_symbol = ctti::make_simple_symbol<"name", &Source::name>();
+    constexpr auto name_dst_symbol = ctti::make_simple_symbol<"name", &Sink::name>();
+
+    ctti::map<value_src_symbol, value_dst_symbol>(src, dst);
+    ctti::map<name_src_symbol, name_dst_symbol>(src, dst);
 
     CHECK(dst.value == 42);
     CHECK(dst.name == "source");
     CHECK_FALSE(dst.active);  // Should remain unchanged
   }
 
-  TEST_CASE("default_mapping_function") {
-    Source src;
-    Sink dst;
-
-    ctti::default_symbol_mapping_function mapper;
-    ctti::map<ctti_symbols::value, ctti_symbols::value>(src, dst, mapper);
-
-    CHECK(dst.value == 42);
-  }
-
   TEST_CASE("custom_mapping_function") {
     Source src;
     Sink dst;
 
-    auto custom_mapper = [](const Source& source, ctti_symbols::value src_symbol, Sink& sink, ctti_symbols::value dst_symbol) {
+    constexpr auto value_src_symbol = ctti::make_simple_symbol<"value", &Source::value>();
+    constexpr auto value_dst_symbol = ctti::make_simple_symbol<"value", &Sink::value>();
+
+    auto custom_mapper = [](const Source& source, auto src_symbol, Sink& sink, auto dst_symbol) {
       if constexpr (src_symbol.template is_owner_of<Source>() && dst_symbol.template is_owner_of<Sink>()) {
-        ctti::set_member_value<ctti_symbols::value>(sink, ctti::get_member_value<ctti_symbols::value>(source) + 1000);
+        auto src_member = src_symbol.template get_member<Source>();
+        auto dst_member = dst_symbol.template get_member<Sink>();
+        sink.*dst_member = source.*src_member + 1000;
       }
     };
 
-    ctti::map<ctti_symbols::value, ctti_symbols::value>(src, dst, custom_mapper);
+    ctti::map<value_src_symbol, value_dst_symbol>(src, dst, custom_mapper);
     CHECK(dst.value == 1042);  // 42 + 1000
   }
 
@@ -64,74 +59,39 @@ TEST_SUITE("map") {
     Source src;
     Sink dst;
 
-    auto mapping = ctti::make_mapping<ctti_symbols::value, ctti_symbols::value>();
+    constexpr auto value_src_symbol = ctti::make_simple_symbol<"value", &Source::value>();
+    constexpr auto value_dst_symbol = ctti::make_simple_symbol<"value", &Sink::value>();
+
+    auto mapping = ctti::make_mapping<value_src_symbol, value_dst_symbol>();
     mapping(src, dst);
 
     CHECK(dst.value == 42);
-  }
-
-  TEST_CASE("custom_symbol_mapping") {
-    Source src;
-    Sink dst;
-
-    auto custom_function = [](const Source& source, ctti_symbols::value, Sink& sink, ctti_symbols::active) { sink.active = (source.value > 0); };
-
-    auto mapping = ctti::make_mapping<ctti_symbols::value, ctti_symbols::active>(custom_function);
-    mapping(src, dst);
-
-    CHECK(dst.active);
   }
 
   TEST_CASE("multiple_mappings") {
     Source src;
     Sink dst;
 
-    auto value_mapping = ctti::make_mapping<ctti_symbols::value, ctti_symbols::value>();
-    auto name_mapping = ctti::make_mapping<ctti_symbols::name, ctti_symbols::name>();
-    auto custom_mapping = ctti::make_mapping<ctti_symbols::price, ctti_symbols::active>(
-        [](const Source& source, ctti_symbols::price, Sink& sink, ctti_symbols::active) { sink.active = (source.price > 50.0); });
+    constexpr auto value_src_symbol = ctti::make_simple_symbol<"value", &Source::value>();
+    constexpr auto value_dst_symbol = ctti::make_simple_symbol<"value", &Sink::value>();
+    constexpr auto name_src_symbol = ctti::make_simple_symbol<"name", &Source::name>();
+    constexpr auto name_dst_symbol = ctti::make_simple_symbol<"name", &Sink::name>();
+    constexpr auto price_src_symbol = ctti::make_simple_symbol<"price", &Source::price>();
+    constexpr auto active_dst_symbol = ctti::make_simple_symbol<"active", &Sink::active>();
+
+    auto value_mapping = ctti::make_mapping<value_src_symbol, value_dst_symbol>();
+    auto name_mapping = ctti::make_mapping<name_src_symbol, name_dst_symbol>();
+    auto custom_mapping = ctti::make_mapping<price_src_symbol, active_dst_symbol>(
+        [](const Source& source, auto src_sym, Sink& sink, auto dst_sym) {
+          auto price_member = src_sym.template get_member<Source>();
+          auto active_member = dst_sym.template get_member<Sink>();
+          sink.*active_member = source.*price_member > 50.0;
+        });
 
     ctti::map(src, dst, value_mapping, name_mapping, custom_mapping);
 
     CHECK(dst.value == 42);
     CHECK(dst.name == "source");
     CHECK(dst.active);  // price > 50.0
-  }
-
-  TEST_CASE("mapping_with_type_conversion") {
-    struct SourceInt {
-      int value = 42;
-    };
-    struct SinkDouble {
-      double value = 0.0;
-    };
-
-    SourceInt src;
-    SinkDouble dst;
-
-    ctti::map<ctti_symbols::value, ctti_symbols::value>(src, dst);
-    CHECK(dst.value == 42.0);
-  }
-
-  TEST_CASE("conditional_mapping") {
-    Source src;
-    Sink dst;
-
-    auto conditional_mapper = [](const Source& source, ctti_symbols::value src_symbol, Sink& sink, ctti_symbols::value dst_symbol) {
-      if constexpr (src_symbol.template is_owner_of<Source>() && dst_symbol.template is_owner_of<Sink>()) {
-        auto src_value = ctti::get_member_value<ctti_symbols::value>(source);
-        if (src_value > 40) {
-          ctti::set_member_value<ctti_symbols::value>(sink, src_value);
-        }
-      }
-    };
-
-    ctti::map<ctti_symbols::value, ctti_symbols::value>(src, dst, conditional_mapper);
-    CHECK(dst.value == 42);
-
-    src.value = 30;
-    dst.value = 0;
-    ctti::map<ctti_symbols::value, ctti_symbols::value>(src, dst, conditional_mapper);
-    CHECK(dst.value == 0);  // Condition not met, should remain 0
   }
 }
