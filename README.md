@@ -1,3 +1,5 @@
+<a name="readme-top"></a>
+
 A modern C++23 header-only library for compile-time type information and reflection.
 
 <details>
@@ -30,6 +32,7 @@ A modern C++23 header-only library for compile-time type information and reflect
 - [Compiler Support](#compiler-support)
 - [Thread Safety](#thread-safety)
 - [License](#license)
+- [Contact](#contact)
 
 </details>
 
@@ -71,8 +74,6 @@ int main() {
   return 0;
 }
 ```
-
----
 
 ## Core API
 
@@ -441,8 +442,6 @@ calc_symbol.has_overload<int()>()           // false - not const
 calc_symbol.has_overload<double() const>()  // false - wrong return type
 ```
 
----
-
 ## Installation
 
 ### Header-only
@@ -487,14 +486,10 @@ CPMAddPackage(
 target_link_libraries(your_target PRIVATE ctti::ctti)
 ```
 
----
-
 ## Requirements
 
 - C++23 compatible compiler (GCC 12+, Clang 15+, MSVC 19.35+)
 - Standard library with C++23 features
-
----
 
 ## Design Principles
 
@@ -504,8 +499,6 @@ target_link_libraries(your_target PRIVATE ctti::ctti)
 4. **Minimal macros**: Eliminated in favor of template parameters and concepts
 5. **Type safety**: Leverages concepts and strong typing throughout
 6. **Zero runtime cost**: Everything resolved at compile time
-
----
 
 ## Concepts and Type Safety
 
@@ -545,8 +538,6 @@ ctti::has_custom_name_of<T>      // Type provides custom name
 ctti::integral_constant_type<T>  // Type is integral constant
 ```
 
----
-
 ## Examples
 
 See `examples/main.cpp` for comprehensive usage examples including:
@@ -561,8 +552,6 @@ See `examples/main.cpp` for comprehensive usage examples including:
 - Compile-time tie operations
 - Attribute system usage
 
----
-
 ## Compiler Support
 
 - **GCC 13+**: Full support
@@ -571,18 +560,18 @@ See `examples/main.cpp` for comprehensive usage examples including:
 
 All major compilers with C++23 support are compatible.
 
----
-
 ## Thread Safety
 
 Since all operations are compile-time, thread safety is not a concern. The library generates no runtime code that could have thread safety issues.
-
----
 
 ## License
 
 MIT License - see LICENSE file for details.
 
+## Contact
+
+RexarX - who727cares@gmail.com
+
 ---
 
-[↑ Back to Top](#ctti---compile-time-type-information)
+[↑ Back to Top](#readme-top)
