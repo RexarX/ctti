@@ -164,6 +164,9 @@ template <typename T, std::size_t I>
 using template_parameter_t = typename template_info<T>::template parameter<I>;
 
 template <typename T>
+constexpr std::size_t template_param_count_v = template_info<T>::parameter_count;
+
+template <typename T>
 concept template_specialization = template_instantiation<T>;
 
 }  // namespace ctti

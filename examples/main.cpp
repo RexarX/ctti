@@ -100,17 +100,17 @@ void demonstrate_symbol_access() {
   Point p{3.0, 4.0};
   Named n{"example", 42};
 
-  const auto x_val = ctti::get_member_value<"x">(p);
-  const auto y_val = ctti::get_member_value<"y">(p);
+  const auto x_val = ctti::get_symbol_value<"x">(p);
+  const auto y_val = ctti::get_symbol_value<"y">(p);
   constexpr auto calculate_symbol = ctti::get_reflected_symbol<"calculate", Point>();
-  const auto calculated = ctti::call_symbol<calculate_symbol>(p);
+  const auto calculated = calculate_symbol.call(p);
 
   std::print("Point x: {}\n", x_val);
   std::print("Point y: {}\n", y_val);
   std::print("Point calculated: {}\n", calculated);
 
-  const auto name_val = ctti::get_member_value<"name">(n);
-  const auto value_val = ctti::get_member_value<"value">(n);
+  const auto name_val = ctti::get_symbol_value<"name">(n);
+  const auto value_val = ctti::get_symbol_value<"value">(n);
 
   std::print("Named name: {}\n", name_val);
   std::print("Named value: {}\n", value_val);
@@ -125,13 +125,18 @@ void demonstrate_overloads() {
 
   constexpr auto add_symbol = ctti::get_reflected_symbol<"add", Calculator>();
 
-  int result1 = ctti::call_symbol<add_symbol>(calc, 5, 3);
-  double result2 = ctti::call_symbol<add_symbol>(calc, 5.5, 3.2);
-  std::string result3 = ctti::call_symbol<add_symbol>(calc, std::string("Hello"), std::string(" World"));
+  int result1 = add_symbol.call(calc, 5, 3);
+  double result2 = add_symbol.call(calc, 5.5, 3.2);
+  std::string result3 = add_symbol.call(calc, std::string("Hello"), std::string(" World"));
 
   std::print("add(5, 3) = {}\n", result1);
   std::print("add(5.5, 3.2) = {}\n", result2);
   std::print("add(\"Hello\", \" World\") = {}\n", result3);
+
+  std::print("Can call with int(int, int): {}\n", add_symbol.has_overload<int(int, int)>());
+  std::print("Can call with string(const string&, const string&): {}\n",
+             add_symbol.has_overload<std::string(const std::string&, const std::string&)>());
+  std::print("Can call with double(double, double): {}\n", add_symbol.has_overload<double(double, double)>());
 
   std::print("\n");
 }
@@ -143,9 +148,9 @@ void demonstrate_attributes() {
   constexpr auto name_symbol = ctti::get_reflected_symbol<"name", Named>();
   constexpr auto value_symbol = ctti::get_reflected_symbol<"value", Named>();
 
-  constexpr bool y_is_readonly = ctti::has_attribute<y_symbol, ctti::read_only>();
-  constexpr bool name_is_validated = ctti::has_attribute<name_symbol, ctti::validated>();
-  constexpr bool value_has_version = ctti::has_attribute_value<value_symbol, 1>();
+  constexpr bool y_is_readonly = y_symbol.has_attribute<ctti::read_only>();
+  constexpr bool name_is_validated = name_symbol.has_attribute<ctti::validated>();
+  constexpr bool value_has_version = value_symbol.has_attribute_value<1>();
 
   std::print("Point.y is read-only: {}\n", y_is_readonly);
   std::print("Named.name is validated: {}\n", name_is_validated);
@@ -158,10 +163,10 @@ void demonstrate_reflection_iteration() {
   std::print("=== Reflection Iteration ===\n");
 
   std::print("Point symbols:\n");
-  ctti::for_each_symbol<Point>([](auto symbol) { std::print("  - {}\n", ctti::symbol_name<symbol>()); });
+  ctti::for_each_symbol<Point>([](auto symbol) { std::print("  - {}\n", symbol.name); });
 
   std::print("Named symbols:\n");
-  ctti::for_each_symbol<Named>([](auto symbol) { std::print("  - {}\n", ctti::symbol_name<symbol>()); });
+  ctti::for_each_symbol<Named>([](auto symbol) { std::print("  - {}\n", symbol.name); });
 
   constexpr auto point_symbol_names = ctti::get_symbol_names<Point>();
   std::print("Point has {} symbols\n", point_symbol_names.size());
@@ -194,7 +199,6 @@ void demonstrate_mapping() {
   constexpr auto price_src_symbol = ctti::make_simple_symbol<"price", &Source::price>();
   constexpr auto active_dst_symbol = ctti::make_simple_symbol<"active", &Sink::active>();
 
-  // Direct mapping
   ctti::map<value_src_symbol, value_dst_symbol>(src, dst);
   ctti::map<name_src_symbol, name_dst_symbol>(src, dst);
 
@@ -203,11 +207,10 @@ void demonstrate_mapping() {
   std::print("  dst.name: {}\n", dst.name);
   std::print("  dst.active: {}\n", dst.active);
 
-  // Custom mapping with function
   auto custom_mapping = ctti::make_mapping<price_src_symbol, active_dst_symbol>(
       [](const Source& source, auto src_sym, Sink& sink, auto dst_sym) {
-        auto price_member = src_sym.template get_member<Source>();
-        auto active_member = dst_sym.template get_member<Sink>();
+        auto price_member = src_sym.get_member<Source>();
+        auto active_member = dst_sym.get_member<Sink>();
         sink.*active_member = source.*price_member > 50.0;
       });
 
@@ -249,48 +252,6 @@ void demonstrate_tie() {
   std::print("\n");
 }
 
-void demonstrate_overload_wrapper() {
-  std::print("=== Overload Wrapper ===\n");
-
-  struct OverloadedStruct {
-    int value = 42;
-
-    void set(int v) { value = v; }
-    void set(const std::string& s) { value = std::stoi(s); }
-    void set(double d) { value = static_cast<int>(d); }
-  };
-
-  OverloadedStruct obj;
-
-  constexpr auto set_symbol = ctti::make_symbol_with_overloads<
-      "set", ctti::no_attributes, static_cast<void (OverloadedStruct::*)(int)>(&OverloadedStruct::set),
-      static_cast<void (OverloadedStruct::*)(const std::string&)>(&OverloadedStruct::set),
-      static_cast<void (OverloadedStruct::*)(double)>(&OverloadedStruct::set)>();
-
-  // Direct overload calls
-  ctti::call_overload<set_symbol>(obj, 100);
-  std::print("After set(100): {}\n", obj.value);
-
-  ctti::call_overload<set_symbol>(obj, std::string("200"));
-  std::print("After set(\"200\"): {}\n", obj.value);
-
-  ctti::call_overload<set_symbol>(obj, 3.14);
-  std::print("After set(3.14): {}\n", obj.value);
-
-  // Using wrapper
-  auto wrapper = ctti::get_overload_wrapper<set_symbol>(obj);
-  wrapper(500);
-  std::print("After wrapper(500): {}\n", obj.value);
-
-  // Query overloads
-  auto query = ctti::query_overloads<set_symbol, OverloadedStruct>();
-  std::print("Can call with int: {}\n", query.has<int>());
-  std::print("Can call with string: {}\n", query.has<const std::string&>());
-  std::print("Can call with double: {}\n", query.has<double>());
-
-  std::print("\n");
-}
-
 void demonstrate_symbol_utilities() {
   std::print("=== Symbol Utilities ===\n");
 
@@ -298,27 +259,31 @@ void demonstrate_symbol_utilities() {
   constexpr auto calc_symbol = ctti::make_simple_symbol<"calculate", &Point::calculate>();
 
   std::print("Symbol names:\n");
-  std::print("  value_symbol: {}\n", ctti::symbol_name<value_symbol>());
-  std::print("  calc_symbol: {}\n", ctti::symbol_name<calc_symbol>());
+  std::print("  value_symbol: {}\n", value_symbol.name);
+  std::print("  calc_symbol: {}\n", calc_symbol.name);
 
   std::print("Symbol hashes:\n");
-  std::print("  value_symbol: {}\n", ctti::symbol_hash<value_symbol>());
-  std::print("  calc_symbol: {}\n", ctti::symbol_hash<calc_symbol>());
+  std::print("  value_symbol: {}\n", value_symbol.hash);
+  std::print("  calc_symbol: {}\n", calc_symbol.hash);
 
   std::print("Symbol overload counts:\n");
-  std::print("  value_symbol: {}\n", ctti::overload_count<value_symbol>());
-  std::print("  calc_symbol: {}\n", ctti::overload_count<calc_symbol>());
+  std::print("  value_symbol: {}\n", value_symbol.overload_count);
+  std::print("  calc_symbol: {}\n", calc_symbol.overload_count);
 
   std::print("Symbol ownership:\n");
   std::print("  value_symbol owns Point: {}\n", value_symbol.is_owner_of<Point>());
   std::print("  value_symbol owns int: {}\n", value_symbol.is_owner_of<int>());
 
   Point p{5.0, 12.0};
-  auto val = ctti::get_symbol_value<value_symbol>(p);
+  auto val = value_symbol.get_value(p);
   std::print("Retrieved value using symbol: {}\n", val);
 
-  ctti::set_symbol_value<value_symbol>(p, 7.0);
+  value_symbol.set_value(p, 7.0);
   std::print("After setting value to 7.0: {}\n", p.x);
+
+  std::print("Symbol method overload checking:\n");
+  std::print("  calc_symbol has double() const: {}\n", calc_symbol.has_overload<double() const>());
+  std::print("  calc_symbol has int(): {}\n", calc_symbol.has_overload<int()>());
 
   std::print("\n");
 }
@@ -564,7 +529,6 @@ int main() {
   demonstrate_reflection_iteration();
   demonstrate_mapping();
   demonstrate_tie();
-  demonstrate_overload_wrapper();
   demonstrate_symbol_utilities();
 
   return 0;

@@ -18,6 +18,10 @@ concept ScopedEnum = std::is_enum_v<E> && !std::convertible_to<E, std::underlyin
 template <typename E>
 concept UnscopedEnum = std::is_enum_v<E> && std::convertible_to<E, std::underlying_type_t<E>>;
 
+template <auto... Values>
+concept SameEnumValues =
+    (std::same_as<decltype(Values), decltype((Values, ...))> && ...) && std::is_enum_v<decltype((Values, ...))>;
+
 template <typename E>
   requires std::is_enum_v<E>
 struct EnumInfo {

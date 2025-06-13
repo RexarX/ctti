@@ -28,7 +28,7 @@ template <typename T>
 constexpr bool has_model_v = detail::HasModel<T>::kValue;
 
 template <typename T>
-constexpr ctti::model<> ctti_model(ctti::type_tag<T>) {
+constexpr ctti::model<> ctti_model(ctti::type_tag<T>) noexcept {
   return {};
 }
 

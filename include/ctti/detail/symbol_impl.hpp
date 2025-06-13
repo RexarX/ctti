@@ -39,12 +39,11 @@ template <CompileTimeString Name, typename AttributeList = TypeList<>, auto... M
 struct Symbol {
   static constexpr std::string_view kName = Name.View();
   static constexpr HashType kHash = Fnv1aHash(kName);
+  static constexpr bool kHasOverloads = sizeof...(MemberPtrs) > 0;
+  static constexpr std::size_t kOverloadCount = sizeof...(MemberPtrs);
 
   using AttributesType = AttributeList;
   using OverloadSetType = MemberOverloadSet<MemberPtrs...>;
-
-  static constexpr bool kHasOverloads = sizeof...(MemberPtrs) > 0;
-  static constexpr std::size_t kOverloadCount = sizeof...(MemberPtrs);
 
   template <typename T>
   static constexpr bool IsOwnerOf() noexcept {
@@ -69,6 +68,14 @@ struct Symbol {
     return SymbolHasAttributeTag<AttributesType, Tag>();
   }
 
+  template <typename Signature>
+  static constexpr bool HasOverloadWithSignature() noexcept {
+    if constexpr (kHasOverloads) {
+      return OverloadSetType::template HasOverloadWithSignature<Signature>();
+    }
+    return false;
+  }
+
   template <typename Obj, typename... Args>
   static constexpr bool HasOverload() noexcept {
     if constexpr (kHasOverloads) {
@@ -77,11 +84,10 @@ struct Symbol {
     return false;
   }
 
-  template <typename... Args>
+  template <typename T, typename... Args>
     requires(kHasOverloads)
-  static constexpr decltype(auto) Call(auto&& obj, Args&&... args) {
-    return OverloadSetType::template Call<decltype(obj), Args...>(std::forward<decltype(obj)>(obj),
-                                                                  std::forward<Args>(args)...);
+  static constexpr decltype(auto) Call(T&& obj, Args&&... args) {
+    return OverloadSetType::template Call<T, Args...>(std::forward<T>(obj), std::forward<Args>(args)...);
   }
 
   template <typename T>
@@ -90,6 +96,30 @@ struct Symbol {
       return std::get<0>(std::make_tuple(MemberPtrs...));
     } else {
       return nullptr;
+    }
+  }
+
+  template <typename T>
+    requires(IsOwnerOf<std::remove_cvref_t<T>>())
+  static constexpr decltype(auto) GetValue(T&& obj) noexcept {
+    constexpr auto member = GetMember<std::decay_t<T>>();
+    if constexpr (!std::same_as<std::remove_cvref_t<decltype(member)>, std::nullptr_t>) {
+      using member_type = std::remove_cvref_t<decltype(member)>;
+      return detail::MemberTraits<member_type>::Get(std::forward<T>(obj), member);
+    } else {
+      static_assert(sizeof(T) == 0, "Symbol has no member for this type");
+    }
+  }
+
+  template <typename T, typename Value>
+    requires(IsOwnerOf<std::remove_cvref_t<T>>())
+  static constexpr void SetValue(T&& obj, Value&& value) {
+    constexpr auto member = GetMember<std::decay_t<T>>();
+    if constexpr (!std::same_as<std::remove_cvref_t<decltype(member)>, std::nullptr_t>) {
+      using member_type = std::remove_cvref_t<decltype(member)>;
+      detail::MemberTraits<member_type>::Set(std::forward<T>(obj), member, std::forward<Value>(value));
+    } else {
+      static_assert(sizeof(T) == 0, "Symbol has no member for this type");
     }
   }
 

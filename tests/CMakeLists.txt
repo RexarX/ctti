@@ -13,7 +13,6 @@ add_executable(ctti_tests
     test_inheritance.cpp
     test_map.cpp
     test_model.cpp
-    test_overload.cpp
     test_template_info.cpp
     test_tie.cpp
     test_type_id.cpp

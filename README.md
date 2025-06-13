@@ -1,5 +1,3 @@
-# CTTI - Compile Time Type Information
-
 A modern C++23 header-only library for compile-time type information and reflection.
 
 <details>
@@ -125,11 +123,11 @@ struct ctti::meta<Point> {
 
 // Use reflection
 Point p{3.0, 4.0};
-auto x_val = ctti::get_member_value<"x">(p);  // Get member value
-ctti::set_member_value<"x">(p, 5.0);          // Set member value
+auto x_val = ctti::get_symbol_value<"x">(p);  // Get member value
+ctti::set_symbol_value<"x">(p, 5.0);          // Set member value
 
 constexpr auto calc_symbol = ctti::get_reflected_symbol<"calculate", Point>();
-auto result = ctti::call_symbol<calc_symbol>(p);  // Call method
+auto result = calc_symbol.call(p);  // Call method
 ```
 
 ### Symbol System
@@ -145,8 +143,14 @@ value_symbol.is_owner_of<MyStruct>()  // true
 auto member_ptr = value_symbol.get_member<MyStruct>();
 
 // Direct symbol operations
-auto val = ctti::get_symbol_value<value_symbol>(obj);
-ctti::set_symbol_value<value_symbol>(obj, new_value);
+auto val = value_symbol.get_value(obj);
+value_symbol.set_value(obj, new_value);
+
+// Check for function overloads with signatures
+auto method_symbol = ctti::make_simple_symbol<"method", &MyStruct::method>();
+method_symbol.has_overload<void(int)>()               // Check for non-const method
+method_symbol.has_overload<int() const>()             // Check for const method
+method_symbol.has_overload<double(double, double)>()  // Check with params
 ```
 
 ### Hash Literals
@@ -189,9 +193,9 @@ struct ctti::meta<Person> {
 
 // Check attributes
 constexpr auto name_symbol = ctti::get_reflected_symbol<"name", Person>();
-constexpr bool is_validated = ctti::has_tag<name_symbol, ctti::validated_tag>();
+constexpr bool is_validated = name_symbol.has_tag<ctti::validated_tag>();
 constexpr auto age_symbol = ctti::get_reflected_symbol<"age", Person>();
-constexpr bool has_version = ctti::has_attribute_value<age_symbol, 1>();
+constexpr bool has_version = age_symbol.has_attribute_value<1>();
 ```
 
 ### Method Overloads
@@ -216,22 +220,20 @@ struct ctti::meta<Calculator> {
   );
 };
 
-// Call overloads
+// Call overloads and check signatures
 Calculator calc;
 constexpr auto add_symbol = ctti::get_reflected_symbol<"add", Calculator>();
-int result1 = ctti::call_symbol<add_symbol>(calc, 5, 3);
-double result2 = ctti::call_symbol<add_symbol>(calc, 5.5, 3.2);
-std::string result3 = ctti::call_symbol<add_symbol>(calc, std::string("Hello"), std::string(" World"));
 
-// Overload queries
-auto query = ctti::query_overloads<add_symbol, Calculator>();
-bool can_call_with_int = query.has<int, int>();
-bool can_call_with_string = query.has<const std::string&, const std::string&>();
+// Check for specific overloads using function signatures
+add_symbol.has_overload<int(int, int)>()                                        // true - int overload
+add_symbol.has_overload<double(double, double)>()                               // true - double overload
+add_symbol.has_overload<std::string(const std::string&, const std::string&)>()  // true - string overload
+add_symbol.has_overload<void(int, int)>()                                       // false - wrong return type
 
-// Overload wrapper
-auto wrapper = ctti::get_overload_wrapper<add_symbol>(calc);
-wrapper(10, 20);    // Calls appropriate overload
-wrapper(1.5, 2.5);  // Calls appropriate overload
+// Call the appropriate overload (automatically resolved)
+int result1 = add_symbol.call(calc, 5, 3);
+double result2 = add_symbol.call(calc, 5.5, 3.2);
+std::string result3 = add_symbol.call(calc, std::string("Hello"), std::string(" World"));
 ```
 
 ### Constructor Info
@@ -255,7 +257,7 @@ info.is_scoped()                     // true for scoped enums
 info.name_of_value<Color::Red>()     // "Red"
 info.underlying_value<Color::Red>()  // Underlying value
 
-auto list = ctti::make_enum_list<Color, Color::Red, Color::Green>();
+auto list = ctti::make_enum_list<Color::Red, Color::Green>();
 list.contains<Color::Red>()  // true
 list.count                   // 2
 
@@ -276,8 +278,8 @@ info.value_parameter_count      // Number of value params
 
 // For type templates
 if constexpr (ctti::variadic_type_template<std::vector<int>>) {
-  using first_param = decltype(info)::type_parameter<0>;  // int
-  auto param_names = info.type_parameter_names();         // ["int"]
+  using first_param = ctti::template_parameter_t<std::vector<int>, 0>;  // int
+  auto param_names = info.type_parameter_names();                       // ["int"]
 
   info.for_each_type_parameter([](auto tag) {
     std::print("Type param: {}\n", ctti::name_of<decltype(tag)::type>());
@@ -396,9 +398,9 @@ constexpr auto from_value = ctti::make_static_value<42>();
 ```cpp
 // Iterate over all symbols
 ctti::for_each_symbol<Point>([](auto symbol) {
-  std::print("Symbol: {}\n", ctti::symbol_name<symbol>());
-  std::print("Hash: {}\n", ctti::symbol_hash<symbol>());
-  std::print("Overload count: {}\n", ctti::overload_count<symbol>());
+  std::print("Symbol: {}\n", symbol.name);
+  std::print("Hash: {}\n", symbol.hash);
+  std::print("Overload count: {}\n", symbol.overload_count);
 });
 
 // Get symbol names
@@ -408,6 +410,35 @@ constexpr auto symbol_count = ctti::symbol_count<Point>();
 // Check if symbol exists
 constexpr bool has_x = ctti::has_symbol<"x", Point>();
 constexpr bool has_invalid = ctti::has_symbol<"invalid", Point>();
+```
+
+### Function Signature Checking
+
+```cpp
+struct MyClass {
+  void method() {}
+  void method(int x) {}
+  int calculate() const { return 42; }
+  void process(const std::string& s) {}
+};
+
+constexpr auto method_symbol = ctti::make_symbol_with_overloads<"method",
+  ctti::no_attributes,
+  static_cast<void (MyClass::*)()>(&MyClass::method),
+  static_cast<void (MyClass::*)(int)>(&MyClass::method)
+>();
+
+constexpr auto calc_symbol = ctti::make_simple_symbol<"calculate", &MyClass::calculate>();
+
+// Check for specific signatures
+method_symbol.has_overload<void()>()        // true - no-arg version
+method_symbol.has_overload<void(int)>()     // true - int version
+method_symbol.has_overload<void(double)>()  // false - no double version
+method_symbol.has_overload<int()>()         // false - wrong return type
+
+calc_symbol.has_overload<int() const>()     // true - exact const signature
+calc_symbol.has_overload<int()>()           // false - not const
+calc_symbol.has_overload<double() const>()  // false - wrong return type
 ```
 
 ---
@@ -522,11 +553,11 @@ See `examples/main.cpp` for comprehensive usage examples including:
 
 - Basic type information
 - Complete reflection setup
-- Method overload handling with clean API
+- Method overload handling with clean signature-based API
 - Template parameter analysis
 - Object mapping and transformation
 - Enum value processing
-- Symbol-based operations
+- Symbol-based operations with function signature checking
 - Compile-time tie operations
 - Attribute system usage
 

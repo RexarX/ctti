@@ -32,11 +32,12 @@ template <typename... Attributes>
   requires(detail::AttributeType<Attributes> && ...)
 class attribute_list {
 private:
-  using attributes_type = detail::TypeList<Attributes...>;
   using internal_list = detail::AttributeList<Attributes...>;
 
 public:
   static constexpr std::size_t size = internal_list::kSize;
+
+  using attributes_type = detail::TypeList<Attributes...>;
 
   template <std::size_t I>
     requires(I < size)

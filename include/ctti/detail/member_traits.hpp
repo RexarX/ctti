@@ -10,10 +10,17 @@
 
 namespace ctti::detail {
 
+enum class OverloadMatchQuality {
+  kNotCallable = -1,  // Cannot be called with given arguments
+  kFallback = 0,      // Can be called but with some issues
+  kConvertible = 1,   // Arguments can be converted to parameter types
+  kPromotable = 2,    // Arguments can be promoted (e.g., int to double)
+  kExactMatch = 3     // Perfect argument type match
+};
+
 template <typename Member>
 struct MemberTraits;
 
-// Primary template for data members
 template <typename T, typename Class>
 struct MemberTraits<T Class::*> {
   using value_type = T;
@@ -45,7 +52,6 @@ struct MemberTraits<T Class::*> {
   }
 };
 
-// Function member specializations with exact matching
 template <typename Return, typename Class, typename... Args>
 struct MemberTraits<Return (Class::*)(Args...)> {
   using value_type = std::remove_cvref_t<Return>;
@@ -53,6 +59,7 @@ struct MemberTraits<Return (Class::*)(Args...)> {
   using class_type = Class;
   using return_type = Return;
   using args_tuple = std::tuple<Args...>;
+  using signature_type = Return(Args...);
 
   static constexpr bool kIsDataMember = false;
   static constexpr bool kIsFunctionMember = true;
@@ -71,9 +78,9 @@ struct MemberTraits<Return (Class::*)(Args...)> {
     return std::invoke(member, std::forward<Obj>(object), std::forward<CallArgs>(args)...);
   }
 
-  template <typename... CallArgs>
-  static constexpr bool CanCall() noexcept {
-    return std::is_invocable_v<pointer_type, Class&, CallArgs...>;
+  template <typename Signature>
+  static constexpr bool CanCallWithSignature() noexcept {
+    return std::same_as<Signature, signature_type>;
   }
 };
 
@@ -84,6 +91,7 @@ struct MemberTraits<Return (Class::*)(Args...) const> {
   using class_type = Class;
   using return_type = Return;
   using args_tuple = std::tuple<Args...>;
+  using signature_type = Return(Args...) const;
 
   static constexpr bool kIsDataMember = false;
   static constexpr bool kIsFunctionMember = true;
@@ -102,9 +110,9 @@ struct MemberTraits<Return (Class::*)(Args...) const> {
     return std::invoke(member, std::forward<Obj>(object), std::forward<CallArgs>(args)...);
   }
 
-  template <typename... CallArgs>
-  static constexpr bool CanCall() noexcept {
-    return std::is_invocable_v<pointer_type, const Class&, CallArgs...>;
+  template <typename Signature>
+  static constexpr bool CanCallWithSignature() noexcept {
+    return std::same_as<Signature, signature_type>;
   }
 };
 
@@ -115,17 +123,17 @@ struct OverloadSignature {
 
   static constexpr auto kMemberPtr = MemberPtr;
 
-  template <typename Obj, typename... Args>
-  static constexpr bool CanCall() noexcept {
+  template <typename Signature>
+  static constexpr bool CanCallWithSignature() noexcept {
     if constexpr (traits_type::kIsFunctionMember) {
-      return std::is_invocable_v<decltype(MemberPtr), Obj&&, Args&&...>;
+      return traits_type::template CanCallWithSignature<Signature>();
     } else {
-      return sizeof...(Args) == 0 && std::derived_from<std::remove_cvref_t<Obj>, class_type>;
+      return false;
     }
   }
 
   template <typename Obj, typename... Args>
-    requires(CanCall<Obj, Args...>())
+    requires(std::invocable<decltype(MemberPtr), Obj &&, Args && ...>)
   static constexpr decltype(auto) Call(Obj&& obj, Args&&... args) {
     if constexpr (traits_type::kIsFunctionMember) {
       return std::invoke(kMemberPtr, std::forward<Obj>(obj), std::forward<Args>(args)...);
@@ -136,10 +144,73 @@ struct OverloadSignature {
   }
 };
 
+// Helper to check if argument types can be promoted to parameter types
+template <typename From, typename To>
+constexpr bool IsPromotable() noexcept {
+  if constexpr (std::same_as<From, To>) {
+    return false;  // Exact match, not a promotion
+  } else if constexpr (std::integral<From> && std::integral<To>) {
+    return sizeof(From) <= sizeof(To) && std::is_signed_v<From> == std::is_signed_v<To>;
+  } else if constexpr (std::floating_point<From> && std::floating_point<To>) {
+    return sizeof(From) <= sizeof(To);
+  } else if constexpr (std::integral<From> && std::floating_point<To>) {
+    return true;  // int to float is a promotion
+  }
+  return false;
+}
+
+// Helper to rank overload matches
+template <auto MemberPtr, typename Obj, typename... Args>
+constexpr OverloadMatchQuality GetOverloadMatchQuality() noexcept {
+  using member_traits = MemberTraits<std::remove_cvref_t<decltype(MemberPtr)>>;
+
+  if constexpr (!std::invocable<decltype(MemberPtr), Obj, Args...>) {
+    return OverloadMatchQuality::kNotCallable;
+  } else if constexpr (member_traits::kIsFunctionMember && sizeof...(Args) == member_traits::kArity) {
+    // Check argument compatibility for function members
+    using expected_args = typename member_traits::args_tuple;
+    using provided_args = std::tuple<std::remove_cvref_t<Args>...>;
+
+    if constexpr (std::same_as<provided_args, expected_args>) {
+      return OverloadMatchQuality::kExactMatch;
+    } else {
+      // Check if all arguments can be promoted
+      constexpr bool all_promotable = []<std::size_t... Is>(std::index_sequence<Is...>) {
+        return (IsPromotable<std::tuple_element_t<Is, provided_args>, std::tuple_element_t<Is, expected_args>>() &&
+                ...);
+      }(std::index_sequence_for<Args...>{});
+
+      if (all_promotable) {
+        return OverloadMatchQuality::kPromotable;
+      }
+
+      // Check if all arguments are convertible
+      constexpr bool all_convertible = (std::convertible_to<Args, typename member_traits::template ArgType<0>> && ...);
+      if (all_convertible) {
+        return OverloadMatchQuality::kConvertible;
+      }
+
+      return OverloadMatchQuality::kFallback;
+    }
+  } else if constexpr (!member_traits::kIsFunctionMember && sizeof...(Args) == 0) {
+    return OverloadMatchQuality::kExactMatch;  // Data member access
+  } else {
+    return OverloadMatchQuality::kFallback;
+  }
+}
+
 template <auto... MemberPtrs>
 class MemberOverloadSet {
 public:
   static constexpr std::size_t kCount = sizeof...(MemberPtrs);
+
+  template <typename Signature>
+  static constexpr bool HasOverloadWithSignature() noexcept {
+    if constexpr (kCount > 0) {
+      return (CanCallOverloadWithSignature<MemberPtrs, Signature>() || ...);
+    }
+    return false;
+  }
 
   template <typename Obj, typename... Args>
   static constexpr bool HasOverload() noexcept {
@@ -152,44 +223,44 @@ public:
   template <typename Obj, typename... Args>
     requires(HasOverload<Obj, Args...>())
   static constexpr decltype(auto) Call(Obj&& obj, Args&&... args) {
-    return CallFirstMatching<Obj, Args...>(std::forward<Obj>(obj), std::forward<Args>(args)...);
+    return CallBestMatching<Obj, Args...>(std::forward<Obj>(obj), std::forward<Args>(args)...);
   }
 
 private:
+  template <auto MemberPtr, typename Signature>
+  static constexpr bool CanCallOverloadWithSignature() noexcept {
+    return OverloadSignature<MemberPtr>::template CanCallWithSignature<Signature>();
+  }
+
   template <auto MemberPtr, typename Obj, typename... Args>
   static constexpr bool CanCallOverload() noexcept {
-    using member_traits = MemberTraits<std::remove_cvref_t<decltype(MemberPtr)>>;
-
-    if constexpr (member_traits::kIsFunctionMember) {
-      // Strict type checking - no implicit conversions for incompatible types
-      if constexpr (sizeof...(Args) == 0) {
-        return std::is_invocable_v<decltype(MemberPtr), Obj>;
-      } else {
-        return std::is_invocable_v<decltype(MemberPtr), Obj, Args...> &&
-               (std::convertible_to<Args, typename member_traits::template ArgType<std::size_t{}>> && ...);
-      }
-    } else {
-      return sizeof...(Args) == 0 && std::derived_from<std::remove_cvref_t<Obj>, typename member_traits::class_type>;
-    }
+    return GetOverloadMatchQuality<MemberPtr, Obj, Args...>() != OverloadMatchQuality::kNotCallable;
   }
 
   template <typename Obj, typename... Args>
-  static constexpr decltype(auto) CallFirstMatching(Obj&& obj, Args&&... args) {
-    return TryCall<0, Obj, Args...>(std::forward<Obj>(obj), std::forward<Args>(args)...);
+  static constexpr decltype(auto) CallBestMatching(Obj&& obj, Args&&... args) {
+    return FindBestMatch<0, OverloadMatchQuality::kNotCallable, 0, Obj, Args...>(std::forward<Obj>(obj),
+                                                                                 std::forward<Args>(args)...);
   }
 
-  template <std::size_t Index, typename Obj, typename... Args>
-  static constexpr decltype(auto) TryCall(Obj&& obj, Args&&... args) {
+  template <std::size_t Index, OverloadMatchQuality BestQuality, std::size_t BestIndex, typename Obj, typename... Args>
+  static constexpr decltype(auto) FindBestMatch(Obj&& obj, Args&&... args) {
     if constexpr (Index < kCount) {
       constexpr auto current_ptr = std::get<Index>(std::make_tuple(MemberPtrs...));
+      constexpr auto current_quality = GetOverloadMatchQuality<current_ptr, Obj, Args...>();
 
-      if constexpr (CanCallOverload<current_ptr, Obj, Args...>()) {
-        return std::invoke(current_ptr, std::forward<Obj>(obj), std::forward<Args>(args)...);
+      if constexpr (current_quality > BestQuality) {
+        return FindBestMatch<Index + 1, current_quality, Index, Obj, Args...>(std::forward<Obj>(obj),
+                                                                              std::forward<Args>(args)...);
       } else {
-        return TryCall<Index + 1, Obj, Args...>(std::forward<Obj>(obj), std::forward<Args>(args)...);
+        return FindBestMatch<Index + 1, BestQuality, BestIndex, Obj, Args...>(std::forward<Obj>(obj),
+                                                                              std::forward<Args>(args)...);
       }
     } else {
-      static_assert(Index < kCount, "No matching overload found");
+      // We've found the best match, now call it
+      static_assert(BestQuality != OverloadMatchQuality::kNotCallable, "No viable overload found");
+      constexpr auto best_ptr = std::get<BestIndex>(std::make_tuple(MemberPtrs...));
+      return std::invoke(best_ptr, std::forward<Obj>(obj), std::forward<Args>(args)...);
     }
   }
 };

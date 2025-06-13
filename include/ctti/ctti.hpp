@@ -10,7 +10,6 @@
 #include <ctti/map.hpp>
 #include <ctti/model.hpp>
 #include <ctti/name.hpp>
-#include <ctti/overload.hpp>
 #include <ctti/reflection.hpp>
 #include <ctti/static_value.hpp>
 #include <ctti/symbol.hpp>

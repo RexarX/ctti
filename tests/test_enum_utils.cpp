@@ -49,7 +49,7 @@ TEST_SUITE("enum_utils") {
   }
 
   TEST_CASE("enum_value_list") {
-    auto list = ctti::make_enum_list<ScopedEnum, ScopedEnum::First, ScopedEnum::Second, ScopedEnum::Third>();
+    auto list = ctti::make_enum_list<ScopedEnum::First, ScopedEnum::Second, ScopedEnum::Third>();
 
     CHECK(list.count == 3);
     CHECK(list.at<0>() == ScopedEnum::First);
@@ -77,8 +77,8 @@ TEST_SUITE("enum_utils") {
     auto info = ctti::get_enum_info<UnscopedEnum>();
 
     CHECK_FALSE(info.is_scoped());
-    CHECK(info.underlying_value<UnscopedEnum::A>() == 10);
-    CHECK(info.underlying_value<UnscopedEnum::B>() == 20);
+    CHECK(info.underlying_value<A>() == 10);
+    CHECK(info.underlying_value<B>() == 20);
   }
 
   TEST_CASE("from_underlying") {
@@ -94,7 +94,7 @@ TEST_SUITE("enum_utils") {
   }
 
   TEST_CASE("enum_list_for_each") {
-    auto list = ctti::make_enum_list<ScopedEnum, ScopedEnum::First, ScopedEnum::Second>();
+    auto list = ctti::make_enum_list<ScopedEnum::First, ScopedEnum::Second>();
 
     int count = 0;
     list.for_each([&count](auto index, ScopedEnum value) {

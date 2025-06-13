@@ -42,22 +42,32 @@ public:
     return internal_type::template HasTag<Tag>();
   }
 
-  template <typename Obj, typename... Args>
+  template <typename Signature>
   static constexpr bool has_overload() noexcept {
-    return internal_type::template HasOverload<Obj, Args...>();
+    return internal_type::template HasOverloadWithSignature<Signature>();
   }
 
   template <typename Obj, typename... Args>
-    requires(has_overloads)
-  static constexpr decltype(auto) call(Obj&& obj, Args&&... args)
-    requires(internal_type::template HasOverload<Obj, Args...>())
-  {
-    return internal_type::template Call<Args...>(std::forward<Obj>(obj), std::forward<Args>(args)...);
+    requires(has_overloads && internal_type::template HasOverload<Obj, Args...>())
+  static constexpr decltype(auto) call(Obj&& obj, Args&&... args) {
+    return internal_type::template Call<Obj, Args...>(std::forward<Obj>(obj), std::forward<Args>(args)...);
   }
 
   template <typename T>
   static constexpr auto get_member() noexcept {
     return internal_type::template GetMember<T>();
+  }
+
+  template <typename T>
+    requires(is_owner_of<std::remove_cvref_t<T>>())
+  static constexpr decltype(auto) get_value(T&& obj) noexcept {
+    return internal_type::GetValue(std::forward<T>(obj));
+  }
+
+  template <typename T, typename Value>
+    requires(is_owner_of<std::remove_cvref_t<T>>())
+  static constexpr void set_value(T&& obj, Value&& value) noexcept {
+    internal_type::SetValue(std::forward<T>(obj), std::forward<Value>(value));
   }
 };
 
@@ -92,36 +102,6 @@ consteval auto make_attributed_symbol() noexcept {
   return symbol<detail::Symbol<Name, detail::TypeList<Attributes...>, MemberPtr>>{};
 }
 
-template <auto Symbol, typename T, typename... Args>
-  requires(decltype(Symbol)::template has_overload<T, Args...>())
-constexpr decltype(auto) call_symbol(T&& obj, Args&&... args) {
-  return decltype(Symbol)::template call<T, Args...>(std::forward<T>(obj), std::forward<Args>(args)...);
-}
-
-template <auto Symbol, typename T>
-  requires(decltype(Symbol)::template is_owner_of<std::remove_cvref_t<T>>())
-constexpr decltype(auto) get_symbol_value(T&& obj) {
-  constexpr auto member = decltype(Symbol)::template get_member<std::decay_t<T>>();
-  if constexpr (!std::same_as<std::remove_cvref_t<decltype(member)>, std::nullptr_t>) {
-    using member_type = std::remove_cvref_t<decltype(member)>;
-    return detail::MemberTraits<member_type>::Get(std::forward<T>(obj), member);
-  } else {
-    static_assert(sizeof(T) == 0, "Symbol has no member for this type");
-  }
-}
-
-template <auto Symbol, typename T, typename Value>
-  requires(decltype(Symbol)::template is_owner_of<std::remove_cvref_t<T>>())
-constexpr void set_symbol_value(T&& obj, Value&& value) {
-  constexpr auto member = decltype(Symbol)::template get_member<std::decay_t<T>>();
-  if constexpr (!std::same_as<std::remove_cvref_t<decltype(member)>, std::nullptr_t>) {
-    using member_type = std::remove_cvref_t<decltype(member)>;
-    detail::MemberTraits<member_type>::Set(std::forward<T>(obj), member, std::forward<Value>(value));
-  } else {
-    static_assert(sizeof(T) == 0, "Symbol has no member for this type");
-  }
-}
-
 template <detail::CompileTimeString Name, typename T>
 constexpr auto get_reflected_symbol() noexcept {
   if constexpr (requires {
@@ -136,53 +116,64 @@ constexpr auto get_reflected_symbol() noexcept {
 }
 
 template <detail::CompileTimeString Name, typename T>
-constexpr decltype(auto) get_member_value(T&& obj) {
+constexpr decltype(auto) get_symbol_value(T&& obj) {
   constexpr auto sym = get_reflected_symbol<Name, std::remove_cvref_t<T>>();
-  return get_symbol_value<sym>(std::forward<T>(obj));
+  return sym.get_value(std::forward<T>(obj));
 }
 
 template <detail::CompileTimeString Name, typename T, typename Value>
-constexpr void set_member_value(T&& obj, Value&& value) {
+constexpr void set_symbol_value(T&& obj, Value&& value) {
   constexpr auto sym = get_reflected_symbol<Name, std::remove_cvref_t<T>>();
-  set_symbol_value<sym>(std::forward<T>(obj), std::forward<Value>(value));
+  sym.set_value(std::forward<T>(obj), std::forward<Value>(value));
 }
 
-template <typename Member>
-using member_traits = detail::MemberTraits<Member>;
-
-template <auto Symbol, typename Attribute>
-constexpr bool has_attribute() noexcept {
-  return decltype(Symbol)::template has_attribute<Attribute>();
+template <detail::CompileTimeString Name, typename T, typename... Args>
+  requires(get_reflected_symbol<Name, T>().template has_overload<decltype((std::declval<Args>(), ...))>())
+constexpr decltype(auto) call_symbol(T&& obj, Args&&... args) {
+  constexpr auto symbol = get_reflected_symbol<Name, std::remove_cvref_t<T>>();
+  return symbol.call(std::forward<T>(obj), std::forward<Args>(args)...);
 }
 
-template <auto Symbol, auto Value>
-constexpr bool has_attribute_value() noexcept {
-  return decltype(Symbol)::template has_attribute_value<Value>();
+template <detail::CompileTimeString Name, typename T, typename Attribute>
+constexpr bool symbol_has_attribute() {
+  constexpr auto symbol = get_reflected_symbol<Name, T>();
+  return symbol.template has_attribute<Attribute>();
 }
 
-template <auto Symbol, typename Tag>
-constexpr bool has_tag() noexcept {
-  return decltype(Symbol)::template has_tag<Tag>();
+template <detail::CompileTimeString Name, typename T, auto Value>
+constexpr bool symbol_has_attribute_value() {
+  constexpr auto symbol = get_reflected_symbol<Name, T>();
+  return symbol.template has_attribute_value<Value>();
 }
 
-template <auto Symbol, typename Obj, typename... Args>
-constexpr bool has_overload() noexcept {
-  return decltype(Symbol)::template has_overload<Obj, Args...>();
+template <detail::CompileTimeString Name, typename T, typename Tag>
+constexpr bool symbol_has_tag() {
+  constexpr auto symbol = get_reflected_symbol<Name, T>();
+  return symbol.template has_tag<Tag>();
 }
 
-template <auto Symbol>
-constexpr std::size_t overload_count() noexcept {
-  return decltype(Symbol)::overload_count;
+template <detail::CompileTimeString Name, typename T, typename Signature>
+constexpr bool symbol_has_overload() noexcept {
+  constexpr auto symbol = get_reflected_symbol<Name, T>();
+  return symbol.template has_overload<Signature>();
 }
 
-template <auto Symbol>
+template <detail::CompileTimeString Name, typename T>
+constexpr std::size_t symbol_overload_count() noexcept {
+  constexpr auto symbol = get_reflected_symbol<Name, T>();
+  return symbol.overload_count;
+}
+
+template <detail::CompileTimeString Name, typename T>
 constexpr std::string_view symbol_name() noexcept {
-  return decltype(Symbol)::name;
+  constexpr auto symbol = get_reflected_symbol<Name, T>();
+  return symbol.name;
 }
 
-template <auto Symbol>
+template <detail::CompileTimeString Name, typename T>
 constexpr std::uint64_t symbol_hash() noexcept {
-  return decltype(Symbol)::hash;
+  constexpr auto symbol = get_reflected_symbol<Name, T>();
+  return symbol.hash;
 }
 
 }  // namespace ctti

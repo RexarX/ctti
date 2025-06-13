@@ -73,10 +73,11 @@ public:
   static constexpr std::array<std::string_view, count> names() noexcept { return internal_list::Names(); }
 };
 
-template <typename E, E... Values>
-  requires std::is_enum_v<E>
-constexpr enum_value_list<E, Values...> make_enum_list() noexcept {
-  return {};
+template <auto... Values>
+  requires detail::SameEnumValues<Values...> && (sizeof...(Values) > 0)
+constexpr auto make_enum_list() noexcept {
+  using E = decltype((Values, ...));
+  return enum_value_list<E, Values...>{};
 }
 
 template <typename E>
