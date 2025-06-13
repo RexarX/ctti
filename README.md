@@ -566,7 +566,7 @@ Since all operations are compile-time, thread safety is not a concern. The libra
 
 ## License
 
-MIT License - see LICENSE file for details.
+Distributed under the MIT license. See `LICENSE` file for details.
 
 ## Contact
 
