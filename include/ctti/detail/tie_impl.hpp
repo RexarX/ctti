@@ -1,9 +1,11 @@
-#ifndef CTTI_DETAIL_TIE_IMPL_HPP
-#define CTTI_DETAIL_TIE_IMPL_HPP
+#pragma once
 
 #include <ctti/detail/meta.hpp>
 #include <ctti/detail/symbol_impl.hpp>
 
+#include <concepts>
+#include <cstddef>
+#include <functional>
 #include <tuple>
 #include <type_traits>
 
@@ -15,7 +17,13 @@ class TieType;
 template <typename... Symbols, typename... Refs>
 class TieType<TypeList<Symbols...>, TypeList<Refs...>> {
 public:
-  constexpr TieType(Refs&... refs) noexcept : refs_(refs...) {}
+  explicit constexpr TieType(Refs&... refs) noexcept : refs_(refs...) {}
+  constexpr TieType(const TieType&) noexcept = default;
+  constexpr TieType(TieType&&) noexcept = default;
+  constexpr ~TieType() noexcept = default;
+
+  constexpr TieType& operator=(const TieType&) noexcept = default;
+  constexpr TieType& operator=(TieType&&) noexcept = default;
 
   template <typename T>
   constexpr void operator=(const T& object) noexcept {
@@ -31,7 +39,7 @@ private:
     using Symbol = SymbolType<Index>;
 
     if constexpr (Symbol::template is_owner_of<T>()) {
-      auto member_ptr = Symbol::template get_member<T>();
+      const auto member_ptr = Symbol::template get_member<T>();
 
       if constexpr (!std::same_as<decltype(member_ptr), std::nullptr_t>) {
         if constexpr (std::is_member_object_pointer_v<decltype(member_ptr)>) {
@@ -46,7 +54,8 @@ private:
   }
 
   template <typename T, std::size_t... Indices>
-  constexpr void Assign(const T& object, std::index_sequence<Indices...>) noexcept {
+  constexpr void Assign(const T& object, [[maybe_unused]] std::index_sequence<Indices...> seq) noexcept(
+      (noexcept(AssignMember<Indices>(object)) && ...)) {
     (AssignMember<Indices>(object), ...);
   }
 
@@ -54,10 +63,8 @@ private:
 };
 
 template <typename... Symbols, typename... Refs>
-constexpr TieType<TypeList<Symbols...>, TypeList<Refs...>> Tie(Refs&... refs) {
-  return {refs...};
+constexpr TieType<TypeList<Symbols...>, TypeList<Refs...>> Tie(Refs&... refs) noexcept {
+  return TieType<TypeList<Symbols...>, TypeList<Refs...>>(refs...);
 }
 
 }  // namespace ctti::detail
-
-#endif  // CTTI_DETAIL_TIE_IMPL_HPP

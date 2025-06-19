@@ -1,5 +1,4 @@
-#ifndef CTTI_DETAIL_STD_TYPE_NAMES_HPP
-#define CTTI_DETAIL_STD_TYPE_NAMES_HPP
+#pragma once
 
 #include <ctti/detail/meta.hpp>
 
@@ -16,118 +15,114 @@ struct Identity;
 
 }  // namespace ctti::detail
 
-// Specializations for std types with their common aliases
-
-constexpr std::string_view name_of_impl(ctti::detail::Identity<std::nullptr_t>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<std::nullptr_t> identity) noexcept {
   return "std::nullptr_t";
 }
 
-constexpr std::string_view name_of_impl(ctti::detail::Identity<int>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<int> identity) noexcept {
   return "int";
 }
 
-constexpr std::string_view name_of_impl(ctti::detail::Identity<double>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<double> identity) noexcept {
   return "double";
 }
 
-constexpr std::string_view name_of_impl(ctti::detail::Identity<float>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<float> identity) noexcept {
   return "float";
 }
 
-constexpr std::string_view name_of_impl(ctti::detail::Identity<char>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<char> identity) noexcept {
   return "char";
 }
 
-constexpr std::string_view name_of_impl(ctti::detail::Identity<bool>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<bool> identity) noexcept {
   return "bool";
 }
 
-constexpr std::string_view name_of_impl(ctti::detail::Identity<void>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<void> identity) noexcept {
   return "void";
 }
 
-constexpr std::string_view name_of_impl(ctti::detail::Identity<long>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<long> identity) noexcept {
   return "long";
 }
 
-constexpr std::string_view name_of_impl(ctti::detail::Identity<long long>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<long long> identity) noexcept {
   return "long long";
 }
 
-constexpr std::string_view name_of_impl(ctti::detail::Identity<unsigned int>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<unsigned int> identity) noexcept {
   return "unsigned int";
 }
 
-constexpr std::string_view name_of_impl(ctti::detail::Identity<unsigned long>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<unsigned long> identity) noexcept {
   return "unsigned long";
 }
 
-constexpr std::string_view name_of_impl(ctti::detail::Identity<unsigned long long>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<unsigned long long> identity) noexcept {
   return "unsigned long long";
 }
 
-constexpr std::string_view name_of_impl(ctti::detail::Identity<short>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<short> identity) noexcept {
   return "short";
 }
 
-constexpr std::string_view name_of_impl(ctti::detail::Identity<unsigned short>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<unsigned short> identity) noexcept {
   return "unsigned short";
 }
 
-constexpr std::string_view name_of_impl(ctti::detail::Identity<signed char>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<signed char> identity) noexcept {
   return "signed char";
 }
 
-constexpr std::string_view name_of_impl(ctti::detail::Identity<unsigned char>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<unsigned char> identity) noexcept {
   return "unsigned char";
 }
 
-constexpr std::string_view name_of_impl(ctti::detail::Identity<long double>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<long double> identity) noexcept {
   return "long double";
 }
 
-constexpr std::string_view name_of_impl(ctti::detail::Identity<char8_t>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<char8_t> identity) noexcept {
   return "char8_t";
 }
 
-constexpr std::string_view name_of_impl(ctti::detail::Identity<char16_t>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<char16_t> identity) noexcept {
   return "char16_t";
 }
 
-constexpr std::string_view name_of_impl(ctti::detail::Identity<char32_t>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<char32_t> identity) noexcept {
   return "char32_t";
 }
 
-constexpr std::string_view name_of_impl(ctti::detail::Identity<wchar_t>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<wchar_t> identity) noexcept {
   return "wchar_t";
 }
 
 template <typename T, std::size_t N>
-constexpr std::string_view name_of_impl(ctti::detail::Identity<std::array<T, N>>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<std::array<T, N>> identity) noexcept {
   return "std::array";
 }
 
-constexpr std::string_view name_of_impl(ctti::detail::Identity<std::string>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<std::string> identity) noexcept {
   return "std::string";
 }
 
-constexpr std::string_view name_of_impl(ctti::detail::Identity<std::string_view>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<std::string_view> identity) noexcept {
   return "std::string_view";
 }
 
 template <typename T>
-constexpr std::string_view name_of_impl(ctti::detail::Identity<std::vector<T>>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<std::vector<T>> identity) noexcept {
   return "std::vector";
 }
 
 template <typename T>
-constexpr std::string_view name_of_impl(ctti::detail::Identity<std::unique_ptr<T>>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<std::unique_ptr<T>> identity) noexcept {
   return "std::unique_ptr";
 }
 
 template <typename T>
-constexpr std::string_view name_of_impl(ctti::detail::Identity<std::shared_ptr<T>>) noexcept {
+constexpr std::string_view name_of_impl([[maybe_unused]] ctti::detail::Identity<std::shared_ptr<T>> identity) noexcept {
   return "std::shared_ptr";
 }
-
-#endif  // CTTI_DETAIL_STD_TYPE_NAMES_HPP

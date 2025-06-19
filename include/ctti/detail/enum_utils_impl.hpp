@@ -1,11 +1,11 @@
-#ifndef CTTI_DETAIL_ENUM_UTILS_IMPL_HPP
-#define CTTI_DETAIL_ENUM_UTILS_IMPL_HPP
+#pragma once
 
 #include <ctti/detail/meta.hpp>
 #include <ctti/detail/name_impl.hpp>
 
 #include <array>
 #include <concepts>
+#include <cstddef>
 #include <optional>
 #include <string_view>
 #include <type_traits>
@@ -38,14 +38,14 @@ struct EnumInfo {
     return static_cast<underlying_type>(Value);
   }
 
-  static constexpr std::string_view Name() noexcept { return NameOfImpl<E>::Apply(); }
-
-  static constexpr bool IsScoped() noexcept { return ScopedEnum<E>; }
-
   template <std::convertible_to<underlying_type> T>
   static constexpr std::optional<E> FromUnderlying(T value) noexcept {
     return static_cast<E>(value);
   }
+
+  static constexpr std::string_view Name() noexcept { return NameOfImpl<E>::Apply(); }
+
+  static constexpr bool IsScoped() noexcept { return ScopedEnum<E>; }
 };
 
 template <typename E, E... Values>
@@ -53,6 +53,7 @@ template <typename E, E... Values>
 struct EnumValueList {
   using enum_type = E;
   using values = TypeList<SizeType<static_cast<std::size_t>(Values)>...>;
+
   static constexpr std::size_t kCount = sizeof...(Values);
 
   static constexpr std::array<E, kCount> ValueArray() noexcept { return {Values...}; }
@@ -63,15 +64,17 @@ struct EnumValueList {
     return ValueArray()[I];
   }
 
+  template <typename F>
+    requires(std::invocable<const F&, SizeType<static_cast<std::size_t>(Values)>, decltype(Values)> && ...)
+  static constexpr void ForEach(const F& func) noexcept(
+      (std::is_nothrow_invocable_v<const F&, SizeType<static_cast<std::size_t>(Values)>, decltype(Values)> && ...)) {
+    auto call_f = [&func](auto index_wrapper, E value) { func(index_wrapper, value); };
+    (call_f(SizeType<static_cast<std::size_t>(Values)>{}, Values), ...);
+  }
+
   template <E Value>
   static constexpr bool Contains() noexcept {
     return ((Values == Value) || ...);
-  }
-
-  template <typename F>
-  static constexpr void ForEach(F&& f) {
-    auto call_f = [&f](auto index_wrapper, E value) { f(index_wrapper, value); };
-    (call_f(SizeType<static_cast<std::size_t>(Values)>{}, Values), ...);
   }
 
   static constexpr std::array<std::string_view, kCount> Names() noexcept {
@@ -92,5 +95,3 @@ constexpr bool EnumLess() noexcept {
 }
 
 }  // namespace ctti::detail
-
-#endif  // CTTI_DETAIL_ENUM_UTILS_IMPL_HPP

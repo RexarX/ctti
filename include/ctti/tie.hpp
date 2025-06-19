@@ -1,15 +1,14 @@
-#ifndef CTTI_TIE_HPP
-#define CTTI_TIE_HPP
+#pragma once
 
 #include <ctti/detail/tie_impl.hpp>
 
 namespace ctti {
 
 template <auto... Symbols, typename... Refs>
-constexpr detail::TieType<detail::TypeList<decltype(Symbols)...>, detail::TypeList<Refs...>> tie(Refs&... refs) {
+  requires(sizeof...(Symbols) == sizeof...(Refs))
+constexpr detail::TieType<detail::TypeList<decltype(Symbols)...>, detail::TypeList<Refs...>> tie(
+    Refs&... refs) noexcept {
   return detail::Tie<decltype(Symbols)...>(refs...);
 }
 
 }  // namespace ctti
-
-#endif  // CTTI_TIE_HPP

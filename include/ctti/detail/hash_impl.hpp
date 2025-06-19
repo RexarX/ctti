@@ -1,6 +1,6 @@
-#ifndef CTTI_DETAIL_HASH_IMPL_HPP
-#define CTTI_DETAIL_HASH_IMPL_HPP
+#pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <string_view>
 
@@ -12,8 +12,8 @@ constexpr HashType kFnvBasis = 14695981039346656037ull;
 constexpr HashType kFnvPrime = 1099511628211ull;
 
 constexpr HashType Fnv1aHash(std::string_view str, HashType hash = kFnvBasis) noexcept {
-  for (char c : str) {
-    hash = (hash ^ static_cast<HashType>(c)) * kFnvPrime;
+  for (char ch : str) {
+    hash = (hash ^ static_cast<HashType>(ch)) * kFnvPrime;
   }
   return hash;
 }
@@ -24,5 +24,3 @@ constexpr HashType Fnv1aHash(const char (&array)[N]) noexcept {
 }
 
 }  // namespace ctti::detail
-
-#endif  // CTTI_DETAIL_HASH_IMPL_HPP

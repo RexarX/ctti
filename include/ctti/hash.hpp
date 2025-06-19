@@ -1,7 +1,9 @@
-#ifndef CTTI_HASH_HPP
-#define CTTI_HASH_HPP
+#pragma once
 
 #include <ctti/detail/hash_impl.hpp>
+
+#include <cstddef>
+#include <cstdint>
 
 namespace ctti {
 
@@ -18,5 +20,3 @@ constexpr std::uint64_t operator""_sh(const char* str, std::size_t length) noexc
 }  // namespace hash_literals
 
 }  // namespace ctti
-
-#endif  // CTTI_HASH_HPP

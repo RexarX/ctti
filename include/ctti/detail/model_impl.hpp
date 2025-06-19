@@ -1,9 +1,10 @@
-#ifndef CTTI_DETAIL_MODEL_IMPL_HPP
-#define CTTI_DETAIL_MODEL_IMPL_HPP
+#pragma once
 
 #include <ctti/detail/meta.hpp>
 #include <ctti/detail/symbol_impl.hpp>
 #include <ctti/type_tag.hpp>
+
+#include <cstddef>
 
 namespace ctti::detail {
 
@@ -36,7 +37,7 @@ template <typename T>
 class HasModel {
 private:
   template <typename U>
-  static constexpr bool CheckIntrusive() {
+  static constexpr bool CheckIntrusive() noexcept {
     if constexpr (requires { typename U::ctti_model; }) {
       using model_type = typename U::ctti_model;
       if constexpr (requires { model_type::size; }) {
@@ -47,7 +48,7 @@ private:
   }
 
   template <typename U>
-  static constexpr bool CheckAdl() {
+  static constexpr bool CheckAdl() noexcept {
     if constexpr (requires { ctti_model(ctti::type_tag<U>{}); }) {
       using model_type = decltype(ctti_model(ctti::type_tag<U>{}));
       if constexpr (requires { model_type::size; }) {
@@ -62,5 +63,3 @@ public:
 };
 
 }  // namespace ctti::detail
-
-#endif  // CTTI_DETAIL_MODEL_IMPL_HPP

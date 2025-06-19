@@ -1,7 +1,9 @@
-#ifndef CTTI_ATTRIBUTES_HPP
-#define CTTI_ATTRIBUTES_HPP
+#pragma once
 
 #include <ctti/detail/attributes_impl.hpp>
+
+#include <cstddef>
+#include <string_view>
 
 namespace ctti {
 
@@ -10,11 +12,16 @@ struct attribute_value {
   using value_type = decltype(Value);
   static constexpr value_type value = Value;
 
+  friend constexpr bool operator==([[maybe_unused]] const attribute_value& val, const value_type& other) noexcept {
+    return value == other;
+  }
+
+  friend constexpr bool operator==(const value_type& other, [[maybe_unused]] const attribute_value& val) noexcept {
+    return value == other;
+  }
+
   constexpr value_type get() const noexcept { return value; }
   constexpr operator value_type() const noexcept { return get(); }
-
-  friend constexpr bool operator==(const attribute_value&, const value_type& other) noexcept { return value == other; }
-  friend constexpr bool operator==(const value_type& other, const attribute_value&) noexcept { return value == other; }
 };
 
 template <typename Tag>
@@ -35,9 +42,9 @@ private:
   using internal_list = detail::AttributeList<Attributes...>;
 
 public:
-  static constexpr std::size_t size = internal_list::kSize;
-
   using attributes_type = detail::TypeList<Attributes...>;
+
+  static constexpr std::size_t size = internal_list::kSize;
 
   template <std::size_t I>
     requires(I < size)
@@ -64,8 +71,9 @@ public:
   }
 
   template <typename F>
-  static constexpr void for_each(F&& f) {
-    internal_list::ForEach(std::forward<F>(f));
+    requires(std::invocable<const F&, detail::Identity<Attributes>> && ...)
+  static constexpr void for_each(const F& func) noexcept(noexcept(internal_list::ForEach(std::declval<const F&>()))) {
+    internal_list::ForEach(func);
   }
 };
 
@@ -92,5 +100,3 @@ template <detail::CompileTimeString Desc>
 using description_with_value = named_attribute<detail::DescriptionValueHolder<Desc>>;
 
 }  // namespace ctti
-
-#endif  // CTTI_ATTRIBUTES_HPP

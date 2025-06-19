@@ -1,11 +1,11 @@
-#ifndef CTTI_DETAIL_INHERITANCE_IMPL_HPP
-#define CTTI_DETAIL_INHERITANCE_IMPL_HPP
+#pragma once
 
 #include <ctti/detail/meta.hpp>
 #include <ctti/detail/name_impl.hpp>
 #include <ctti/type_tag.hpp>
 
 #include <concepts>
+#include <cstddef>
 #include <type_traits>
 
 namespace ctti::detail {
@@ -31,15 +31,14 @@ concept HasVirtualDestructor = std::has_virtual_destructor_v<T>;
 template <typename Derived, typename Base>
   requires DerivedFrom<Derived, Base>
 struct InheritanceInfo {
+  using derived_type = Derived;
+  using base_type = Base;
+
   static constexpr bool kIsDerived = true;
   static constexpr bool kIsPublicDerived = PubliclyDerivedFrom<Derived, Base>;
   static constexpr bool kIsVirtualBase = false;
 
-  using derived_type = Derived;
-  using base_type = Base;
-
   static constexpr std::string_view DerivedName() noexcept { return NameOfImpl<Derived>::Apply(); }
-
   static constexpr std::string_view BaseName() noexcept { return NameOfImpl<Base>::Apply(); }
 };
 
@@ -48,32 +47,34 @@ template <typename T, typename... Bases>
 struct BaseList {
   using type = T;
   using bases = TypeList<Bases...>;
+
   static constexpr std::size_t kCount = sizeof...(Bases);
 
   template <std::size_t I>
     requires(I < kCount)
   using Base = typename bases::template At<I>;
 
+  template <typename F>
+    requires(std::invocable<F, Identity<Bases>> && ...)
+  static constexpr void ForEachBase(const F& func) noexcept((std::is_nothrow_invocable_v<const F&, Identity<Bases>> &&
+                                                             ...)) {
+    (func(Identity<Bases>{}), ...);
+  }
+
   template <typename Base>
   static constexpr bool HasBase() noexcept {
     return Contains<Base, bases>::value;
-  }
-
-  template <typename F>
-    requires(std::invocable<F, Identity<Bases>> && ...)
-  static constexpr void ForEachBase(F&& f) {
-    (f(Identity<Bases>{}), ...);
   }
 };
 
 template <typename T>
 struct PolymorphismInfo {
+  using type = T;
+
   static constexpr bool kIsPolymorphic = Polymorphic<T>;
   static constexpr bool kIsAbstract = Abstract<T>;
   static constexpr bool kIsFinal = Final<T>;
   static constexpr bool kHasVirtualDestructor = HasVirtualDestructor<T>;
-
-  using type = T;
 
   static constexpr std::string_view Name() noexcept { return NameOfImpl<T>::Apply(); }
 };
@@ -128,5 +129,3 @@ const To* DynamicCastSafe(const From* ptr) noexcept {
 }
 
 }  // namespace ctti::detail
-
-#endif  // CTTI_DETAIL_INHERITANCE_IMPL_HPP

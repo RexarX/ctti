@@ -1,7 +1,11 @@
-#ifndef CTTI_ENUM_UTILS_HPP
-#define CTTI_ENUM_UTILS_HPP
+#pragma once
 
 #include <ctti/detail/enum_utils_impl.hpp>
+
+#include <concepts>
+#include <cstddef>
+#include <string_view>
+#include <type_traits>
 
 namespace ctti {
 
@@ -13,7 +17,7 @@ concept unscoped_enum = detail::UnscopedEnum<E>;
 
 template <typename E>
   requires std::is_enum_v<E>
-struct enum_info {
+class enum_info {
 private:
   using internal_info = detail::EnumInfo<E>;
 
@@ -31,14 +35,14 @@ public:
     return internal_info::template UnderlyingValue<Value>();
   }
 
-  static constexpr std::string_view name() noexcept { return internal_info::Name(); }
-
-  static constexpr bool is_scoped() noexcept { return internal_info::IsScoped(); }
-
   template <std::convertible_to<underlying_type> T>
   static constexpr std::optional<E> from_underlying(T value) noexcept {
     return internal_info::FromUnderlying(value);
   }
+
+  static constexpr std::string_view name() noexcept { return internal_info::Name(); }
+
+  static constexpr bool is_scoped() noexcept { return internal_info::IsScoped(); }
 };
 
 template <typename E, E... Values>
@@ -66,8 +70,9 @@ public:
   }
 
   template <typename F>
-  static constexpr void for_each(F&& f) {
-    internal_list::ForEach(std::forward<F>(f));
+    requires(std::invocable<const F&, detail::SizeType<static_cast<std::size_t>(Values)>, E> && ...)
+  static constexpr void for_each(const F& func) noexcept(noexcept(internal_list::ForEach(std::declval<const F&>()))) {
+    internal_list::ForEach(func);
   }
 
   static constexpr std::array<std::string_view, count> names() noexcept { return internal_list::Names(); }
@@ -98,6 +103,18 @@ constexpr std::string_view enum_type_name() noexcept {
   return enum_info<E>::name();
 }
 
+template <typename E>
+  requires std::is_enum_v<std::remove_cvref_t<E>>
+constexpr auto get_enum_info([[maybe_unused]] const E& obj) noexcept {
+  return enum_info<std::remove_cvref_t<E>>{};
+}
+
+template <typename E>
+  requires std::is_enum_v<std::remove_cvref_t<E>>
+constexpr std::string_view enum_type_name([[maybe_unused]] const E& obj) noexcept {
+  return enum_info<std::remove_cvref_t<E>>::name();
+}
+
 template <typename E, E Value>
   requires std::is_enum_v<E>
 constexpr auto enum_underlying_value() noexcept {
@@ -117,5 +134,3 @@ constexpr bool enum_less() noexcept {
 }
 
 }  // namespace ctti
-
-#endif  // CTTI_ENUM_UTILS_HPP

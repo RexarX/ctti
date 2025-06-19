@@ -1,7 +1,7 @@
 
-#ifndef CTTI_DETAIL_NAME_PARSER_HPP
-#define CTTI_DETAIL_NAME_PARSER_HPP
+#pragma once
 
+#include <cstddef>
 #include <expected>
 #include <string_view>
 
@@ -99,5 +99,3 @@ public:
 };
 
 }  // namespace ctti::detail
-
-#endif  // CTTI_DETAIL_NAME_PARSER_HPP

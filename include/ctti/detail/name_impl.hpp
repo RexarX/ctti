@@ -1,5 +1,4 @@
-#ifndef CTTI_DETAIL_NAME_IMPL_HPP
-#define CTTI_DETAIL_NAME_IMPL_HPP
+#pragma once
 
 #include <ctti/detail/compile_time_string.hpp>
 #include <ctti/detail/meta.hpp>
@@ -7,14 +6,15 @@
 
 #include <array>
 #include <concepts>
+#include <cstddef>
 #include <string>
 #include <string_view>
 #include <type_traits>
 
 namespace ctti::detail {
 
-constexpr bool IsWhitespace(char c) noexcept {
-  return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+constexpr bool IsWhitespace(char ch) noexcept {
+  return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r';
 }
 
 constexpr std::string_view TrimWhitespace(std::string_view str) noexcept {
@@ -123,7 +123,7 @@ constexpr std::string_view ExtractEnumValueName(std::string_view full_name) noex
     const auto value_start = value_param_pos + 13;  // length of "ValueParam = "
     const auto value_end = full_name.find(']', value_start);
     if (value_end != std::string_view::npos) {
-      auto result = TrimWhitespace(full_name.substr(value_start, value_end - value_start));
+      const auto result = TrimWhitespace(full_name.substr(value_start, value_end - value_start));
 
       // For scoped enums: "EnumType::Value" -> extract "Value"
       const auto last_colon = result.rfind("::");
@@ -142,7 +142,7 @@ constexpr std::string_view ExtractEnumValueName(std::string_view full_name) noex
     const auto value_start = equal_pos + 3;
     const auto value_end = full_name.find(']', value_start);
     if (value_end != std::string_view::npos) {
-      auto result = TrimWhitespace(full_name.substr(value_start, value_end - value_start));
+      const auto result = TrimWhitespace(full_name.substr(value_start, value_end - value_start));
 
       const auto last_colon = result.rfind("::");
       if (last_colon != std::string_view::npos) {
@@ -156,12 +156,12 @@ constexpr std::string_view ExtractEnumValueName(std::string_view full_name) noex
   // GCC format: "...[with T = EnumType, ValueParam = Value]" or similar
 
   // First try to find ValueParam pattern
-  auto param_start = full_name.find("ValueParam = ");
+  const auto param_start = full_name.find("ValueParam = ");
   if (param_start != std::string_view::npos) {
     const auto value_start = param_start + 13;  // length of "ValueParam = "
     const auto value_end = full_name.find_first_of("];", value_start);
     if (value_end != std::string_view::npos) {
-      auto result = TrimWhitespace(full_name.substr(value_start, value_end - value_start));
+      const auto result = TrimWhitespace(full_name.substr(value_start, value_end - value_start));
 
       // For unscoped enums, GCC might format as "EnumName::Value" or just "Value"
       const auto last_colon = result.rfind("::");
@@ -185,7 +185,7 @@ constexpr std::string_view ExtractEnumValueName(std::string_view full_name) noex
     const auto value_start = equal_pos + 3;
     const auto value_end = full_name.find_first_of("];", value_start);
     if (value_end != std::string_view::npos) {
-      auto result = TrimWhitespace(full_name.substr(value_start, value_end - value_start));
+      const auto result = TrimWhitespace(full_name.substr(value_start, value_end - value_start));
 
       const auto last_colon = result.rfind("::");
       if (last_colon != std::string_view::npos) {
@@ -202,7 +202,7 @@ constexpr std::string_view ExtractEnumValueName(std::string_view full_name) noex
     const auto value_start = last_comma + 1;
     const auto angle_end = full_name.find('>', value_start);
     if (angle_end != std::string_view::npos) {
-      auto result = TrimWhitespace(full_name.substr(value_start, angle_end - value_start));
+      const auto result = TrimWhitespace(full_name.substr(value_start, angle_end - value_start));
 
       // For scoped enums: "EnumType::Value" -> extract "Value"
       const auto last_colon = result.rfind("::");
@@ -223,7 +223,7 @@ constexpr std::string_view ExtractEnumValueName(std::string_view full_name) noex
       const auto content = full_name.substr(last_angle_start + 1, angle_end - last_angle_start - 1);
       const auto comma_pos = content.rfind(',');
       if (comma_pos != std::string_view::npos) {
-        auto result = TrimWhitespace(content.substr(comma_pos + 1));
+        const auto result = TrimWhitespace(content.substr(comma_pos + 1));
 
         // Handle scoped enum format
         const auto last_colon = result.rfind("::");
@@ -384,17 +384,22 @@ struct NameOfImpl {
 
 class QualifiedName {
 public:
-  constexpr QualifiedName(std::string_view full_name) noexcept {
+  explicit constexpr QualifiedName(std::string_view full_name) noexcept {
     const auto pos = full_name.find(';');
     full_name_ = pos != std::string_view::npos ? full_name.substr(0, pos) : full_name;
   }
+
+  constexpr QualifiedName(const QualifiedName&) noexcept = default;
+  constexpr QualifiedName(QualifiedName&&) noexcept = default;
+  constexpr ~QualifiedName() noexcept = default;
+
+  constexpr QualifiedName& operator=(const QualifiedName&) noexcept = default;
+  constexpr QualifiedName& operator=(QualifiedName&&) noexcept = default;
 
   constexpr std::string_view GetName() const noexcept {
     const auto last_colon_pos = full_name_.rfind("::");
     return last_colon_pos == std::string_view::npos ? full_name_ : full_name_.substr(last_colon_pos + 2);
   }
-
-  constexpr std::string_view GetFullName() const noexcept { return full_name_; }
 
   constexpr std::string_view GetQualifier(std::size_t index) const noexcept {
     if (index == 0) {
@@ -411,10 +416,12 @@ public:
     return full_name_.substr(pos_prev + 2, pos_curr - pos_prev - 2);
   }
 
+  constexpr std::string_view GetFullName() const noexcept { return full_name_; }
+
   constexpr bool operator==(const QualifiedName& other) const noexcept { return full_name_ == other.full_name_; }
 
 private:
-  constexpr std::size_t FindIth(std::string_view name, std::string_view substring, std::size_t index) const noexcept {
+  static constexpr std::size_t FindIth(std::string_view name, std::string_view substring, std::size_t index) noexcept {
     if (substring.empty()) {
       return index <= name.size() ? index : std::string_view::npos;
     }
@@ -441,5 +448,3 @@ private:
 };
 
 }  // namespace ctti::detail
-
-#endif  // CTTI_DETAIL_NAME_IMPL_HPP

@@ -1,5 +1,4 @@
-#ifndef CTTI_MODEL_HPP
-#define CTTI_MODEL_HPP
+#pragma once
 
 #include <ctti/detail/model_impl.hpp>
 #include <ctti/type_tag.hpp>
@@ -34,4 +33,3 @@ constexpr ctti::model<> ctti_model(ctti::type_tag<T>) noexcept {
 
 }  // namespace ctti
 
-#endif  // CTTI_MODEL_HPP

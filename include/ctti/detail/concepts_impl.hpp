@@ -1,13 +1,10 @@
-#ifndef CTTI_DETAIL_CONCEPTS_IMPL_HPP
-#define CTTI_DETAIL_CONCEPTS_IMPL_HPP
+#pragma once
 
 #include <ctti/detail/meta.hpp>
 #include <ctti/type_tag.hpp>
 
 #include <concepts>
-#include <string>
 #include <string_view>
-#include <type_traits>
 
 namespace ctti::detail {
 
@@ -17,7 +14,7 @@ concept HasCustomNameOf = requires {
 };
 
 template <typename T>
-consteval bool HasAdlModel() {
+consteval bool HasAdlModel() noexcept {
   if constexpr (requires { ctti_model(ctti::type_tag<T>{}); }) {
     using model_type = decltype(ctti_model(ctti::type_tag<T>{}));
     if constexpr (requires { model_type::size; }) {
@@ -28,7 +25,7 @@ consteval bool HasAdlModel() {
 }
 
 template <typename T>
-consteval bool HasIntrusiveModel() {
+consteval bool HasIntrusiveModel() noexcept {
   if constexpr (requires { typename T::ctti_model; }) {
     using model_type = typename T::ctti_model;
     if constexpr (requires { model_type::size; }) {
@@ -47,5 +44,3 @@ concept SymbolMemberOf = requires {
 } && Symbol::template is_owner_of<Type>();
 
 }  // namespace ctti::detail
-
-#endif  // CTTI_DETAIL_CONCEPTS_IMPL_HPP

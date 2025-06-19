@@ -1,15 +1,22 @@
-#ifndef CTTI_NAME_HPP
-#define CTTI_NAME_HPP
+#pragma once
 
 #include <ctti/detail/name_impl.hpp>
 
+#include <cstddef>
 #include <string_view>
+#include <type_traits>
 
 namespace ctti {
 
 class qualified_name {
 public:
-  constexpr qualified_name(detail::QualifiedName qualified_name) noexcept : qualified_name_(qualified_name) {}
+  explicit constexpr qualified_name(detail::QualifiedName qualified_name) noexcept : qualified_name_(qualified_name) {}
+  constexpr qualified_name(const qualified_name&) noexcept = default;
+  constexpr qualified_name(qualified_name&&) noexcept = default;
+  constexpr ~qualified_name() noexcept = default;
+
+  constexpr qualified_name& operator=(const qualified_name&) noexcept = default;
+  constexpr qualified_name& operator=(qualified_name&&) noexcept = default;
 
   constexpr std::string_view get_name() const noexcept { return qualified_name_.GetName(); }
 
@@ -32,6 +39,11 @@ constexpr std::string_view name_of() noexcept {
   return detail::NameOfImpl<T>::Apply();
 }
 
+template <typename T>
+constexpr std::string_view name_of([[maybe_unused]] const T& obj) noexcept {
+  return detail::NameOfImpl<std::remove_cvref_t<T>>::Apply();
+}
+
 template <typename T, T Value>
 constexpr std::string_view name_of() noexcept {
   return detail::ValueNameOfImpl<T, Value>::Apply();
@@ -39,14 +51,17 @@ constexpr std::string_view name_of() noexcept {
 
 template <typename T>
 constexpr qualified_name qualified_name_of() noexcept {
-  return detail::QualifiedName(name_of<T>());
+  return qualified_name(detail::QualifiedName(name_of<T>()));
+}
+
+template <typename T>
+constexpr qualified_name qualified_name_of(const T& obj) noexcept {
+  return qualified_name(detail::QualifiedName(name_of(obj)));
 }
 
 template <typename T, T Value>
 constexpr qualified_name qualified_name_of() noexcept {
-  return detail::QualifiedName(name_of<T, Value>());
+  return qualified_name(detail::QualifiedName(name_of<T, Value>()));
 }
 
 }  // namespace ctti
-
-#endif  // CTTI_NAME_HPP

@@ -1,8 +1,11 @@
-#ifndef CTTI_CONSTRUCTOR_HPP
-#define CTTI_CONSTRUCTOR_HPP
+#pragma once
 
 #include <ctti/detail/constructor_impl.hpp>
 #include <ctti/type_tag.hpp>
+
+#include <memory>
+#include <type_traits>
+#include <utility>
 
 namespace ctti {
 
@@ -61,11 +64,8 @@ public:
   }
 
   static constexpr bool is_default_constructible() noexcept { return internal_info::IsDefaultConstructible(); }
-
   static constexpr bool is_copy_constructible() noexcept { return internal_info::IsCopyConstructible(); }
-
   static constexpr bool is_move_constructible() noexcept { return internal_info::IsMoveConstructible(); }
-
   static constexpr bool is_aggregate() noexcept { return internal_info::IsAggregate(); }
 };
 
@@ -75,7 +75,12 @@ constexpr constructor_info<T> get_constructor_info() noexcept {
 }
 
 template <typename T>
-constexpr constructor_info<T> get_constructor_info(type_tag<T>) noexcept {
+constexpr constructor_info<T> get_constructor_info([[maybe_unused]] type_tag<T> tag) noexcept {
+  return {};
+}
+
+template <typename T>
+constexpr constructor_info<std::remove_cvref_t<T>> get_constructor_info([[maybe_unused]] const T& obj) noexcept {
   return {};
 }
 
@@ -87,16 +92,14 @@ private:
 public:
   using type = T;
   using args_tuple = std::tuple<Args...>;
+
   static constexpr std::size_t arity = internal_signature::kArity;
+  static constexpr bool is_valid = internal_signature::kIsValid;
+  static constexpr bool is_nothrow = internal_signature::kIsNothrow;
 
   template <std::size_t I>
     requires(I < arity)
   using arg_type = typename internal_signature::template ArgType<I>;
-
-  static constexpr bool is_valid = internal_signature::kIsValid;
-  static constexpr bool is_nothrow = internal_signature::kIsNothrow;
 };
 
 }  // namespace ctti
-
-#endif  // CTTI_CONSTRUCTOR_HPP

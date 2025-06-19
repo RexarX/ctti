@@ -1,12 +1,15 @@
-#ifndef CTTI_DETAIL_REFLECTION_IMPL_HPP
-#define CTTI_DETAIL_REFLECTION_IMPL_HPP
+#pragma once
 
 #include <ctti/detail/meta.hpp>
 #include <ctti/detail/symbol_impl.hpp>
 
 #include <array>
+#include <concepts>
+#include <cstddef>
 #include <optional>
 #include <string_view>
+#include <tuple>
+#include <type_traits>
 
 namespace ctti::detail {
 
@@ -15,20 +18,23 @@ class TypeReflection {
 public:
   using Type = ReflectedType;
   using DefinitionsType = TypeList<Definitions...>;
+
   static constexpr std::size_t kSize = sizeof...(Definitions);
+
+  template <std::size_t I>
+    requires(I < kSize)
+  using DefinitionAt = std::tuple_element_t<I, std::tuple<Definitions...>>;
 
   template <CompileTimeString Name>
   static consteval auto GetSymbol() noexcept {
     return GetSymbolByName<Name, Definitions...>();
   }
 
-  template <std::size_t I>
-    requires(I < kSize)
-  using DefinitionAt = std::tuple_element_t<I, std::tuple<Definitions...>>;
-
   template <typename F>
-  static constexpr void ForEachSymbol(F&& f) {
-    (f(Definitions::MakeSymbol()), ...);
+    requires(std::invocable<const F&, decltype(Definitions::MakeSymbol())> && ...)
+  static constexpr void ForEachSymbol(const F& func) noexcept(
+      (std::is_nothrow_invocable_v<const F&, decltype(Definitions::MakeSymbol())> && ...)) {
+    (func(Definitions::MakeSymbol()), ...);
   }
 
   template <CompileTimeString Name>
@@ -108,15 +114,15 @@ struct GetFirstMemberPtr;
 // For SymbolDefinition - get the single member pointer
 template <CompileTimeString Name, auto Ptr, typename... Attributes>
 struct GetFirstMemberPtr<SymbolDefinition<Name, Ptr, Attributes...>> {
-  static constexpr auto value = Ptr;
   using ClassType = typename ExtractClassType<decltype(Ptr)>::Type;
+  static constexpr auto kValue = Ptr;
 };
 
 // For OverloadedSymbolDefinition - get the first member pointer
 template <CompileTimeString Name, typename AttributeList, auto FirstPtr, auto... RestPtrs>
 struct GetFirstMemberPtr<OverloadedSymbolDefinition<Name, AttributeList, FirstPtr, RestPtrs...>> {
-  static constexpr auto value = FirstPtr;
   using ClassType = typename ExtractClassType<decltype(FirstPtr)>::Type;
+  static constexpr auto kValue = FirstPtr;
 };
 
 // Validate all definitions belong to the same class
@@ -147,5 +153,3 @@ struct DeduceTypeFromDefinitions<> {
 };
 
 }  // namespace ctti::detail
-
-#endif  // CTTI_DETAIL_REFLECTION_IMPL_HPP

@@ -1,11 +1,10 @@
-#ifndef CTTI_DETAIL_META_HPP
-#define CTTI_DETAIL_META_HPP
+#pragma once
 
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <tuple>
 #include <type_traits>
-#include <utility>
 
 namespace ctti::detail {
 
@@ -41,8 +40,7 @@ concept IntegralConstantType = requires {
 };
 
 template <typename... Ts>
-class TypeList {
-public:
+struct TypeList {
   static constexpr std::size_t kSize = sizeof...(Ts);
 
   template <std::size_t I>
@@ -56,11 +54,12 @@ public:
   static constexpr bool kAnySatisfy = (Predicate<Ts>::value || ...);
 
   template <typename F>
-  static constexpr void ForEach(F&& f) {
-    if constexpr (requires { (f.template operator()<Ts>(), ...); }) {
-      (f.template operator()<Ts>(), ...);
+    requires((std::invocable<const F&, Identity<Ts>> && ...) || (std::invocable<const F&, Ts> && ...))
+  static constexpr void ForEach(const F& func) {
+    if constexpr (requires { (func.template operator()<Ts>(), ...); }) {
+      (func.template operator()<Ts>(), ...);
     } else {
-      (f(Identity<Ts>{}), ...);
+      (func(Identity<Ts>{}), ...);
     }
   }
 };
@@ -194,5 +193,3 @@ template <typename... Ts>
 struct Inherit<TypeList<Ts...>> : Ts... {};
 
 }  // namespace ctti::detail
-
-#endif  // CTTI_DETAIL_META_HPP

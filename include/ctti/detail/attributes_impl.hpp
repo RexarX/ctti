@@ -1,5 +1,4 @@
-#ifndef CTTI_DETAIL_ATTRIBUTES_IMPL_HPP
-#define CTTI_DETAIL_ATTRIBUTES_IMPL_HPP
+#pragma once
 
 #include <ctti/detail/compile_time_string.hpp>
 #include <ctti/detail/hash_impl.hpp>
@@ -7,6 +6,7 @@
 
 #include <array>
 #include <concepts>
+#include <cstddef>
 #include <string_view>
 #include <type_traits>
 
@@ -17,16 +17,22 @@ struct AttributeValue {
   using value_type = decltype(Value);
   static constexpr value_type kValue = Value;
 
+  friend constexpr bool operator==([[maybe_unused]] const AttributeValue& value, const value_type& other) noexcept {
+    return kValue == other;
+  }
+
+  friend constexpr bool operator==(const value_type& other, [[maybe_unused]] const AttributeValue& value) noexcept {
+    return kValue == other;
+  }
+
   constexpr value_type Get() const noexcept { return kValue; }
   constexpr operator value_type() const noexcept { return Get(); }
-
-  friend constexpr bool operator==(const AttributeValue&, const value_type& other) noexcept { return kValue == other; }
-  friend constexpr bool operator==(const value_type& other, const AttributeValue&) noexcept { return kValue == other; }
 };
 
 template <typename Tag>
 struct TagAttribute {
   using tag_type = Tag;
+
   static constexpr std::string_view kName = "tag_attribute";
   static constexpr HashType kHash = Fnv1aHash(kName);
 };
@@ -54,8 +60,7 @@ constexpr bool AttributeHasValue() noexcept {
                   typename Attr::value_type;
                   { Attr::value } -> std::convertible_to<typename Attr::value_type>;
                 }) {
-    // Make sure we're using exactly the same conditions for comparing values
-    // as defined in attribute_value's operator==
+    // Make sure we're using exactly the same conditions for comparing values as defined in attribute_value's operator==
     return Attr::value == Value;
   }
   return false;
@@ -73,6 +78,7 @@ template <typename... Attributes>
   requires(AttributeType<Attributes> && ...)
 struct AttributeList {
   using attributes_type = TypeList<Attributes...>;
+
   static constexpr std::size_t kSize = sizeof...(Attributes);
 
   template <std::size_t I>
@@ -100,8 +106,10 @@ struct AttributeList {
   }
 
   template <typename F>
-  static constexpr void ForEach(F&& f) {
-    (f(Identity<Attributes>{}), ...);
+    requires(std::invocable<const F&, Identity<Attributes>> && ...)
+  static constexpr void ForEach(const F& func) noexcept((std::is_nothrow_invocable_v<const F&, Identity<Attributes>> &&
+                                                         ...)) {
+    (func(Identity<Attributes>{}), ...);
   }
 
   static constexpr std::array<std::string_view, kSize> GetNames() noexcept {
@@ -145,5 +153,3 @@ struct DescriptionValueHolder {
 };
 
 }  // namespace ctti::detail
-
-#endif  // CTTI_DETAIL_ATTRIBUTES_IMPL_HPP

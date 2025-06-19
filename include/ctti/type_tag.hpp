@@ -1,5 +1,4 @@
-#ifndef CTTI_TYPE_TAG_HPP
-#define CTTI_TYPE_TAG_HPP
+#pragma once
 
 namespace ctti {
 
@@ -11,4 +10,3 @@ struct type_tag {
 
 }  // namespace ctti
 
-#endif  // CTTI_TYPE_TAG_HPP

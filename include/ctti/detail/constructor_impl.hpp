@@ -1,11 +1,11 @@
-#ifndef CTTI_DETAIL_CONSTRUCTOR_IMPL_HPP
-#define CTTI_DETAIL_CONSTRUCTOR_IMPL_HPP
+#pragma once
 
 #include <ctti/detail/meta.hpp>
 #include <ctti/detail/name_impl.hpp>
 #include <ctti/type_tag.hpp>
 
 #include <concepts>
+#include <cstddef>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -70,11 +70,8 @@ struct ConstructorInfo {
   }
 
   static constexpr bool IsDefaultConstructible() noexcept { return DefaultConstructible<T>; }
-
   static constexpr bool IsCopyConstructible() noexcept { return CopyConstructible<T>; }
-
   static constexpr bool IsMoveConstructible() noexcept { return MoveConstructible<T>; }
-
   static constexpr bool IsAggregate() noexcept { return AggregateType<T>; }
 };
 
@@ -82,16 +79,14 @@ template <typename T, typename... Args>
 struct ConstructorSignature {
   using type = T;
   using args_tuple = std::tuple<Args...>;
+
   static constexpr std::size_t kArity = sizeof...(Args);
+  static constexpr bool kIsValid = Constructible<T, Args...>;
+  static constexpr bool kIsNothrow = NothrowConstructible<T, Args...>;
 
   template <std::size_t I>
     requires(I < kArity)
   using ArgType = std::tuple_element_t<I, args_tuple>;
-
-  static constexpr bool kIsValid = Constructible<T, Args...>;
-  static constexpr bool kIsNothrow = NothrowConstructible<T, Args...>;
 };
 
 }  // namespace ctti::detail
-
-#endif  // CTTI_DETAIL_CONSTRUCTOR_IMPL_HPP

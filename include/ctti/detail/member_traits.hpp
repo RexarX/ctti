@@ -1,9 +1,9 @@
-#ifndef CTTI_DETAIL_MEMBER_TRAITS_HPP
-#define CTTI_DETAIL_MEMBER_TRAITS_HPP
+#pragma once
 
 #include <ctti/detail/meta.hpp>
 
 #include <concepts>
+#include <cstddef>
 #include <functional>
 #include <type_traits>
 #include <utility>
@@ -134,7 +134,8 @@ struct OverloadSignature {
 
   template <typename Obj, typename... Args>
     requires(std::invocable<decltype(MemberPtr), Obj &&, Args && ...>)
-  static constexpr decltype(auto) Call(Obj&& obj, Args&&... args) {
+  static constexpr decltype(auto) Call(Obj&& obj, Args&&... args) noexcept(
+      (std::is_nothrow_invocable_v<decltype(MemberPtr), Obj&&, Args&&...>)) {
     if constexpr (traits_type::kIsFunctionMember) {
       return std::invoke(kMemberPtr, std::forward<Obj>(obj), std::forward<Args>(args)...);
     } else {
@@ -222,7 +223,8 @@ public:
 
   template <typename Obj, typename... Args>
     requires(HasOverload<Obj, Args...>())
-  static constexpr decltype(auto) Call(Obj&& obj, Args&&... args) {
+  static constexpr decltype(auto) Call(Obj&& obj, Args&&... args) noexcept(
+      noexcept(CallBestMatching<Obj, Args...>(std::forward<Obj>(obj), std::forward<Args>(args)...))) {
     return CallBestMatching<Obj, Args...>(std::forward<Obj>(obj), std::forward<Args>(args)...);
   }
 
@@ -266,5 +268,3 @@ private:
 };
 
 }  // namespace ctti::detail
-
-#endif  // CTTI_DETAIL_MEMBER_TRAITS_HPP

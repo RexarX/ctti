@@ -1,15 +1,18 @@
-#ifndef CTTI_MAP_HPP
-#define CTTI_MAP_HPP
+#pragma once
 
 #include <ctti/detail/map_impl.hpp>
+
+#include <concepts>
+#include <utility>
 
 namespace ctti {
 
 using default_symbol_mapping_function = detail::DefaultSymbolMappingFunction;
 
 template <auto SourceSymbol, auto SinkSymbol, typename Source, typename Sink, typename Function>
-  requires std::invocable<Function, const Source&, decltype(SourceSymbol), Sink&, decltype(SinkSymbol)>
-void map(const Source& source, Sink& sink, const Function& function) noexcept {
+  requires std::invocable<const Function&, const Source&, decltype(SourceSymbol), Sink&, decltype(SinkSymbol)>
+void map(const Source& source, Sink& sink, const Function& function) noexcept(
+    noexcept(detail::Map<decltype(SourceSymbol), decltype(SinkSymbol)>(source, sink, function))) {
   detail::Map<decltype(SourceSymbol), decltype(SinkSymbol)>(source, sink, function);
 }
 
@@ -37,5 +40,3 @@ void map(const Source& source, Sink& sink, const Mappings&... mappings) noexcept
 }
 
 }  // namespace ctti
-
-#endif  // CTTI_MAP_HPP

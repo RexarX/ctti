@@ -1,10 +1,9 @@
-#ifndef CTTI_DETAIL_TYPE_ID_IMPL_HPP
-#define CTTI_DETAIL_TYPE_ID_IMPL_HPP
+#pragma once
 
 #include <ctti/detail/hash_impl.hpp>
 #include <ctti/detail/name_impl.hpp>
 
-#include <compare>
+#include <cstddef>
 #include <functional>
 #include <string_view>
 
@@ -14,12 +13,18 @@ class TypeId {
 public:
   constexpr TypeId() noexcept = default;
   constexpr explicit TypeId(std::string_view name) noexcept : name_(name), hash_(Fnv1aHash(name_)) {}
+  constexpr TypeId(const TypeId&) noexcept = default;
+  constexpr TypeId(TypeId&&) noexcept = default;
+  constexpr ~TypeId() noexcept = default;
 
-  constexpr HashType GetHash() const noexcept { return hash_; }
-  constexpr std::string_view GetName() const noexcept { return name_; }
+  constexpr TypeId& operator=(const TypeId&) noexcept = default;
+  constexpr TypeId& operator=(TypeId&&) noexcept = default;
 
   constexpr auto operator<=>(const TypeId&) const noexcept = default;
   constexpr bool operator==(const TypeId&) const noexcept = default;
+
+  constexpr HashType GetHash() const noexcept { return hash_; }
+  constexpr std::string_view GetName() const noexcept { return name_; }
 
 private:
   std::string_view name_ = "void";
@@ -28,13 +33,19 @@ private:
 
 class TypeIndex {
 public:
-  constexpr TypeIndex(HashType hash) noexcept : hash_(hash) {}
-  constexpr TypeIndex(const TypeId& id) noexcept : hash_(id.GetHash()) {}
+  explicit constexpr TypeIndex(HashType hash) noexcept : hash_(hash) {}
+  explicit constexpr TypeIndex(const TypeId& id) noexcept : hash_(id.GetHash()) {}
+  constexpr TypeIndex(const TypeIndex&) noexcept = default;
+  constexpr TypeIndex(TypeIndex&&) noexcept = default;
+  constexpr ~TypeIndex() noexcept = default;
 
-  constexpr HashType GetHash() const noexcept { return hash_; }
+  constexpr TypeIndex& operator=(const TypeIndex&) noexcept = default;
+  constexpr TypeIndex& operator=(TypeIndex&&) noexcept = default;
 
   constexpr auto operator<=>(const TypeIndex&) const noexcept = default;
   constexpr bool operator==(const TypeIndex&) const noexcept = default;
+
+  constexpr HashType GetHash() const noexcept { return hash_; }
 
 private:
   HashType hash_;
@@ -80,5 +91,3 @@ struct hash<ctti::detail::TypeIndex> {
 };
 
 }  // namespace std
-
-#endif  // CTTI_DETAIL_TYPE_ID_IMPL_HPP

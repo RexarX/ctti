@@ -1,5 +1,4 @@
-#ifndef CTTI_DETAIL_SYMBOL_IMPL_HPP
-#define CTTI_DETAIL_SYMBOL_IMPL_HPP
+#pragma once
 
 #include <ctti/detail/attributes_impl.hpp>
 #include <ctti/detail/compile_time_string.hpp>
@@ -8,8 +7,10 @@
 #include <ctti/detail/meta.hpp>
 
 #include <concepts>
+#include <cstddef>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 
 namespace ctti::detail {
 
@@ -18,7 +19,7 @@ constexpr bool SymbolHasAttributeValue() noexcept {
   if constexpr (AttributeList::kSize == 0) {
     return false;
   } else {
-    return [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+    return []<std::size_t... Is>(std::index_sequence<Is...>) {
       return (... || AttributeHasValue<typename AttributeList::template At<Is>, Value>());
     }(std::make_index_sequence<AttributeList::kSize>{});
   }
@@ -29,7 +30,7 @@ constexpr bool SymbolHasAttributeTag() noexcept {
   if constexpr (AttributeList::kSize == 0) {
     return false;
   } else {
-    return [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+    return []<std::size_t... Is>(std::index_sequence<Is...>) {
       return (... || AttributeHasTag<typename AttributeList::template At<Is>, Tag>());
     }(std::make_index_sequence<AttributeList::kSize>{});
   }
@@ -37,13 +38,13 @@ constexpr bool SymbolHasAttributeTag() noexcept {
 
 template <CompileTimeString Name, typename AttributeList = TypeList<>, auto... MemberPtrs>
 struct Symbol {
+  using AttributesType = AttributeList;
+  using OverloadSetType = MemberOverloadSet<MemberPtrs...>;
+
   static constexpr std::string_view kName = Name.View();
   static constexpr HashType kHash = Fnv1aHash(kName);
   static constexpr bool kHasOverloads = sizeof...(MemberPtrs) > 0;
   static constexpr std::size_t kOverloadCount = sizeof...(MemberPtrs);
-
-  using AttributesType = AttributeList;
-  using OverloadSetType = MemberOverloadSet<MemberPtrs...>;
 
   template <typename T>
   static constexpr bool IsOwnerOf() noexcept {
@@ -86,7 +87,8 @@ struct Symbol {
 
   template <typename T, typename... Args>
     requires(kHasOverloads)
-  static constexpr decltype(auto) Call(T&& obj, Args&&... args) {
+  static constexpr decltype(auto) Call(T&& obj, Args&&... args) noexcept(
+      noexcept(OverloadSetType::template Call<T, Args...>(std::forward<T>(obj), std::forward<Args>(args)...))) {
     return OverloadSetType::template Call<T, Args...>(std::forward<T>(obj), std::forward<Args>(args)...);
   }
 
@@ -134,23 +136,23 @@ struct Symbol {
 
 template <CompileTimeString Name, auto Ptr, typename... Attributes>
 struct SymbolDefinition {
+  using AttributesType = TypeList<Attributes...>;
+  using SymbolType = Symbol<Name, TypeList<Attributes...>, Ptr>;
+
   static constexpr std::string_view kName = Name.View();
   static constexpr auto kPointer = Ptr;
   static constexpr HashType kHash = Fnv1aHash(kName);
-
-  using AttributesType = TypeList<Attributes...>;
-  using SymbolType = Symbol<Name, TypeList<Attributes...>, Ptr>;
 
   static constexpr auto MakeSymbol() noexcept { return SymbolType{}; }
 };
 
 template <CompileTimeString Name, typename AttributeList, auto... Pointers>
 struct OverloadedSymbolDefinition {
-  static constexpr std::string_view kName = Name.View();
-  static constexpr HashType kHash = Fnv1aHash(kName);
-
   using AttributesType = AttributeList;
   using SymbolType = Symbol<Name, AttributeList, Pointers...>;
+
+  static constexpr std::string_view kName = Name.View();
+  static constexpr HashType kHash = Fnv1aHash(kName);
 
   static constexpr auto MakeSymbol() noexcept { return SymbolType{}; }
 };
@@ -171,5 +173,3 @@ consteval auto MakeOverloadedSymbolDefinition() noexcept {
 }
 
 }  // namespace ctti::detail
-
-#endif  // CTTI_DETAIL_SYMBOL_IMPL_HPP

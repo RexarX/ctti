@@ -1,8 +1,8 @@
-#ifndef CTTI_DETAIL_COMPILE_TIME_STRING_HPP
-#define CTTI_DETAIL_COMPILE_TIME_STRING_HPP
+#pragma once
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <string_view>
 
 namespace ctti::detail {
@@ -16,9 +16,16 @@ struct CompileTimeString {
 
   template <std::size_t M>
     requires(M <= N)
-  consteval CompileTimeString(const CompileTimeString<M>& other) noexcept {
+  explicit consteval CompileTimeString(const CompileTimeString<M>& other) noexcept {
     std::copy_n(other.data_.data(), M, data_.begin());
   }
+
+  consteval CompileTimeString(const CompileTimeString&) noexcept = default;
+  consteval CompileTimeString(CompileTimeString&&) noexcept = default;
+  constexpr ~CompileTimeString() noexcept = default;
+
+  consteval CompileTimeString& operator=(const CompileTimeString&) noexcept = default;
+  consteval CompileTimeString& operator=(CompileTimeString&&) noexcept = default;
 
   constexpr std::string_view View() const noexcept { return std::string_view{data_.data(), N - 1}; }
 
@@ -26,14 +33,14 @@ struct CompileTimeString {
   constexpr bool EndsWith(std::string_view suffix) const noexcept { return View().ends_with(suffix); }
 
   constexpr std::size_t Find(char ch) const noexcept {
-    auto sv = View();
-    auto pos = sv.find(ch);
+    const auto sv = View();
+    const auto pos = sv.find(ch);
     return pos == std::string_view::npos ? N - 1 : pos;
   }
 
   constexpr std::size_t Find(std::string_view substring) const noexcept {
-    auto sv = View();
-    auto pos = sv.find(substring);
+    const auto sv = View();
+    const auto pos = sv.find(substring);
     return pos == std::string_view::npos ? N - 1 : pos;
   }
 
@@ -87,5 +94,3 @@ consteval auto operator""_cts() noexcept {
 using namespace literals;
 
 }  // namespace ctti::detail
-
-#endif  // CTTI_DETAIL_COMPILE_TIME_STRING_HPP

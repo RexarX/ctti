@@ -1,6 +1,6 @@
-#ifndef CTTI_DETAIL_PRETTY_FUNCTION_HPP
-#define CTTI_DETAIL_PRETTY_FUNCTION_HPP
+#pragma once
 
+#include <cstddef>
 #include <string_view>
 
 #if defined(__clang__)
@@ -51,12 +51,12 @@ constexpr std::string_view Value() noexcept {
 
 }  // namespace pretty_function
 
-constexpr bool IsAlphaNumeric(char c) noexcept {
-  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
+constexpr bool IsAlphaNumeric(char ch) noexcept {
+  return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9');
 }
 
-constexpr bool IsValidIdentifierChar(char c) noexcept {
-  return IsAlphaNumeric(c) || c == '_';
+constexpr bool IsValidIdentifierChar(char ch) noexcept {
+  return IsAlphaNumeric(ch) || ch == '_';
 }
 
 constexpr std::string_view FindTypeInSignature(std::string_view signature, std::string_view known_type) noexcept {
@@ -146,5 +146,3 @@ constexpr std::size_t kTypePrettyFunctionLeft = kPrettyFunctionOffsets.first;
 constexpr std::size_t kTypePrettyFunctionRight = kPrettyFunctionOffsets.second;
 
 }  // namespace ctti::detail
-
-#endif  // CTTI_DETAIL_PRETTY_FUNCTION_HPP

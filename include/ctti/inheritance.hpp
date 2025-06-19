@@ -1,7 +1,10 @@
-#ifndef CTTI_INHERITANCE_HPP
-#define CTTI_INHERITANCE_HPP
+#pragma once
 
 #include <ctti/detail/inheritance_impl.hpp>
+
+#include <cstddef>
+#include <string_view>
+#include <type_traits>
 
 namespace ctti {
 
@@ -25,17 +28,17 @@ concept has_virtual_destructor = detail::HasVirtualDestructor<T>;
 
 template <typename Derived, typename Base>
   requires derived_from<Derived, Base>
-struct inheritance_info {
+class inheritance_info {
 private:
   using internal_info = detail::InheritanceInfo<Derived, Base>;
 
 public:
+  using derived_type = Derived;
+  using base_type = Base;
+
   static constexpr bool is_derived = internal_info::kIsDerived;
   static constexpr bool is_public_derived = internal_info::kIsPublicDerived;
   static constexpr bool is_virtual_base = internal_info::kIsVirtualBase;
-
-  using derived_type = Derived;
-  using base_type = Base;
 
   static constexpr std::string_view derived_name() noexcept { return internal_info::DerivedName(); }
 
@@ -44,13 +47,14 @@ public:
 
 template <typename T, typename... Bases>
   requires(derived_from<T, Bases> && ...)
-struct base_list {
+class base_list {
 private:
   using internal_list = detail::BaseList<T, Bases...>;
 
 public:
   using type = T;
   using bases_type = typename internal_list::bases;
+
   static constexpr std::size_t count = internal_list::kCount;
 
   template <std::size_t I>
@@ -63,9 +67,10 @@ public:
   }
 
   template <typename F>
-    requires(std::invocable<F, detail::Identity<Bases>> && ...)
-  static constexpr void for_each_base(F&& f) {
-    internal_list::ForEachBase(std::forward<F>(f));
+    requires(std::invocable<const F&, detail::Identity<Bases>> && ...)
+  static constexpr void for_each_base(const F& func) noexcept(
+      noexcept(internal_list::ForEachBase(std::declval<const F&>()))) {
+    internal_list::ForEachBase(func);
   }
 };
 
@@ -75,12 +80,12 @@ private:
   using internal_info = detail::PolymorphismInfo<T>;
 
 public:
+  using type = T;
+
   static constexpr bool is_polymorphic = internal_info::kIsPolymorphic;
   static constexpr bool is_abstract = internal_info::kIsAbstract;
   static constexpr bool is_final = internal_info::kIsFinal;
   static constexpr bool has_virtual_destructor = internal_info::kHasVirtualDestructor;
-
-  using type = T;
 
   static constexpr std::string_view name() noexcept { return internal_info::Name(); }
 };
@@ -121,6 +126,26 @@ constexpr inheritance_info<Derived, Base> get_inheritance_info() noexcept {
   return {};
 }
 
+template <typename T>
+constexpr polymorphism_info<std::remove_cvref_t<T>> get_polymorphism_info([[maybe_unused]] const T& obj) noexcept {
+  return {};
+}
+
+template <typename T>
+constexpr bool is_polymorphic([[maybe_unused]] const T& obj) noexcept {
+  return detail::IsPolymorphic<std::remove_cvref_t<T>>();
+}
+
+template <typename T>
+constexpr bool is_abstract([[maybe_unused]] const T& obj) noexcept {
+  return detail::IsAbstract<std::remove_cvref_t<T>>();
+}
+
+template <typename T>
+constexpr bool is_final([[maybe_unused]] const T& obj) noexcept {
+  return detail::IsFinal<std::remove_cvref_t<T>>();
+}
+
 template <typename To, typename From>
   requires publicly_derived_from<From, To> || publicly_derived_from<To, From>
 constexpr To* safe_cast(From* ptr) noexcept {
@@ -146,5 +171,3 @@ const To* dynamic_cast_safe(const From* ptr) noexcept {
 }
 
 }  // namespace ctti
-
-#endif  // CTTI_INHERITANCE_HPP

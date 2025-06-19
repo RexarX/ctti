@@ -1,5 +1,4 @@
-#ifndef CTTI_DETAIL_TYPE_TAG_IMPL_HPP
-#define CTTI_DETAIL_TYPE_TAG_IMPL_HPP
+#pragma once
 
 namespace ctti::detail {
 
@@ -11,4 +10,3 @@ struct TypeTag {
 
 }  // namespace ctti::detail
 
-#endif  // CTTI_DETAIL_TYPE_TAG_IMPL_HPP

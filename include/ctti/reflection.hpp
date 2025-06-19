@@ -1,11 +1,12 @@
-#ifndef CTTI_REFLECTION_HPP
-#define CTTI_REFLECTION_HPP
+#pragma once
 
 #include <ctti/detail/reflection_impl.hpp>
 #include <ctti/detail/symbol_impl.hpp>
 #include <ctti/symbol.hpp>
 
 #include <array>
+#include <concepts>
+#include <cstddef>
 #include <string_view>
 
 namespace ctti {
@@ -16,30 +17,29 @@ struct meta;
 template <typename InternalDef>
 struct member_definition {
   using internal_type = InternalDef;
+  using attributes_type = typename internal_type::AttributesType;
+  using symbol_type = typename internal_type::SymbolType;
 
   static constexpr std::string_view name = internal_type::kName;
   static constexpr auto hash = internal_type::kHash;
-
-  using attributes_type = typename internal_type::AttributesType;
-  using symbol_type = typename internal_type::SymbolType;
 
   static constexpr auto make_symbol() noexcept { return internal_type::MakeSymbol(); }
 };
 
 template <detail::CompileTimeString Name, auto Ptr, typename... Attrs>
-consteval auto member(Attrs...) {
+consteval auto member(Attrs...) noexcept {
   using internal_def = detail::SymbolDefinition<Name, Ptr, Attrs...>;
   return member_definition<internal_def>{};
 }
 
 template <detail::CompileTimeString Name, auto... Ptrs>
-consteval auto overloaded_member() {
+consteval auto overloaded_member() noexcept {
   using internal_def = detail::OverloadedSymbolDefinition<Name, detail::TypeList<>, Ptrs...>;
   return member_definition<internal_def>{};
 }
 
 template <detail::CompileTimeString Name, auto... Ptrs, typename... Attrs>
-consteval auto overloaded_member(Attrs...) {
+consteval auto overloaded_member(Attrs...) noexcept {
   using internal_def = detail::OverloadedSymbolDefinition<Name, detail::TypeList<Attrs...>, Ptrs...>;
   return member_definition<internal_def>{};
 }
@@ -51,6 +51,7 @@ private:
 
 public:
   using type = typename internal_type::Type;
+
   static constexpr std::size_t size = internal_type::kSize;
 
   template <detail::CompileTimeString Name>
@@ -73,13 +74,17 @@ public:
   }
 
   template <typename F>
-  static constexpr void for_each_symbol(F&& f) {
-    internal_type::ForEachSymbol([&f](auto internal_symbol) { f(symbol<decltype(internal_symbol)>{}); });
+    requires std::invocable<
+        const F&,
+        symbol<decltype(std::declval<typename internal_type::DefinitionsType::template At<0>>().MakeSymbol())>>
+  static constexpr void for_each_symbol(const F& func) noexcept(noexcept(
+      internal_type::ForEachSymbol([&func](auto internal_symbol) { func(symbol<decltype(internal_symbol)>{}); }))) {
+    internal_type::ForEachSymbol([&func](auto internal_symbol) { func(symbol<decltype(internal_symbol)>{}); });
   }
 };
 
 template <typename... Defs>
-consteval auto make_reflection(Defs...) {
+consteval auto make_reflection(Defs...) noexcept {
   if constexpr (sizeof...(Defs) > 0) {
     using deduced_type = typename detail::DeduceTypeFromDefinitions<typename Defs::internal_type...>::Type;
     using internal_reflection = detail::TypeReflection<deduced_type, typename Defs::internal_type...>;
@@ -103,7 +108,7 @@ constexpr auto get_reflection() noexcept {
 }
 
 template <reflectable T, detail::CompileTimeString Name>
-constexpr auto get_symbol() noexcept {
+constexpr auto get_symbol() noexcept(noexcept(get_reflection<T>().template get_symbol<Name>())) {
   return get_reflection<T>().template get_symbol<Name>();
 }
 
@@ -118,8 +123,11 @@ constexpr auto get_symbol_names() noexcept {
 }
 
 template <reflectable T, typename F>
-constexpr void for_each_symbol(F&& f) {
-  get_reflection<T>().for_each_symbol(std::forward<F>(f));
+  requires std::invocable<const F&,
+                          decltype(get_reflection<T>().template get_symbol<detail::CompileTimeString<1>{""}>())>
+constexpr void for_each_symbol(const F& func) noexcept(
+    noexcept(get_reflection<T>().for_each_symbol(std::declval<const F&>()))) {
+  get_reflection<T>().for_each_symbol(func);
 }
 
 template <detail::CompileTimeString Name, typename T>
@@ -131,5 +139,3 @@ constexpr bool has_symbol() noexcept {
 }
 
 }  // namespace ctti
-
-#endif  // CTTI_REFLECTION_HPP

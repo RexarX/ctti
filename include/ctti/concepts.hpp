@@ -1,5 +1,4 @@
-#ifndef CTTI_CONCEPTS_HPP
-#define CTTI_CONCEPTS_HPP
+#pragma once
 
 #include <ctti/detail/concepts_impl.hpp>
 #include <ctti/detail/meta.hpp>
@@ -20,5 +19,3 @@ template <typename T>
 concept integral_constant_type = detail::IntegralConstantType<T>;
 
 }  // namespace ctti
-
-#endif  // CTTI_CONCEPTS_HPP

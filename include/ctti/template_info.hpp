@@ -1,8 +1,12 @@
-#ifndef CTTI_TEMPLATE_INFO_HPP
-#define CTTI_TEMPLATE_INFO_HPP
+#pragma once
 
 #include <ctti/detail/template_info_impl.hpp>
 #include <ctti/type_tag.hpp>
+
+#include <concepts>
+#include <cstddef>
+#include <string_view>
+#include <type_traits>
 
 namespace ctti {
 
@@ -25,6 +29,7 @@ private:
 
 public:
   using type = T;
+
   static constexpr bool is_template_instantiation = internal_info::kIsTemplateInstantiation;
   static constexpr std::size_t parameter_count = internal_info::kParameterCount;
   static constexpr std::size_t type_parameter_count = internal_info::kTypeParameterCount;
@@ -40,6 +45,7 @@ private:
 
 public:
   using type = T;
+
   static constexpr bool is_template_instantiation = true;
   static constexpr std::size_t parameter_count = internal_info::kParameterCount;
   static constexpr std::size_t type_parameter_count = internal_info::kTypeParameterCount;
@@ -67,15 +73,16 @@ public:
   }
 
   template <typename F>
-  static constexpr void for_each_type_parameter(F&& f) {
-    if constexpr (requires { internal_info::ForEachTypeParameter(std::forward<F>(f)); }) {
-      internal_info::ForEachTypeParameter(std::forward<F>(f));
-    }
+    requires requires { internal_info::ForEachTypeParameter(std::declval<const F&>()); }
+  static constexpr void for_each_type_parameter(const F& func) noexcept(
+      noexcept(internal_info::ForEachTypeParameter(func))) {
+    internal_info::ForEachTypeParameter(func);
   }
 
   template <typename F>
-  static constexpr void for_each_parameter(F&& f) {
-    for_each_type_parameter(std::forward<F>(f));
+    requires requires { internal_info::ForEachTypeParameter(std::declval<const F&>()); }
+  static constexpr void for_each_parameter(const F& func) noexcept(noexcept(for_each_type_parameter(func))) {
+    for_each_type_parameter(func);
   }
 
   static constexpr auto type_parameter_names() noexcept {
@@ -96,6 +103,7 @@ private:
 
 public:
   using type = T;
+
   static constexpr bool is_template_instantiation = true;
   static constexpr std::size_t parameter_count = internal_info::kParameterCount;
   static constexpr std::size_t type_parameter_count = 0;
@@ -110,13 +118,16 @@ public:
   }
 
   template <typename F>
-  static constexpr void for_each_value_parameter(F&& f) {
-    internal_info::ForEachValueParameter(std::forward<F>(f));
+    requires requires { internal_info::ForEachValueParameter(std::declval<const F&>()); }
+  static constexpr void for_each_value_parameter(const F& func) noexcept(
+      noexcept(internal_info::ForEachValueParameter(func))) {
+    internal_info::ForEachValueParameter(func);
   }
 
   template <typename F>
-  static constexpr void for_each_parameter(F&& f) {
-    for_each_value_parameter(std::forward<F>(f));
+    requires requires { internal_info::ForEachValueParameter(std::declval<const F&>()); }
+  static constexpr void for_each_parameter(const F& func) noexcept(noexcept(for_each_value_parameter(func))) {
+    for_each_value_parameter(func);
   }
 };
 
@@ -127,12 +138,12 @@ private:
 
 public:
   using type = T;
+  using type_parameter = typename internal_info::type_parameter;
+
   static constexpr bool is_template_instantiation = true;
   static constexpr std::size_t parameter_count = internal_info::kParameterCount;
   static constexpr std::size_t type_parameter_count = internal_info::kTypeParameterCount;
   static constexpr std::size_t value_parameter_count = internal_info::kValueParameterCount;
-
-  using type_parameter = typename internal_info::type_parameter;
   static constexpr auto value_parameter = internal_info::kValueParameter;
 
   template <std::size_t I>
@@ -159,6 +170,21 @@ constexpr std::size_t template_parameter_count() noexcept {
   return template_info<T>::parameter_count;
 }
 
+template <typename T>
+constexpr auto get_template_info([[maybe_unused]] const T& obj) noexcept {
+  return template_info<std::remove_cvref_t<T>>{};
+}
+
+template <typename T>
+constexpr bool is_template_instantiation([[maybe_unused]] const T& obj) noexcept {
+  return template_instantiation<std::remove_cvref_t<T>>;
+}
+
+template <typename T>
+constexpr std::size_t template_parameter_count([[maybe_unused]] const T& obj) noexcept {
+  return template_info<std::remove_cvref_t<T>>::parameter_count;
+}
+
 template <typename T, std::size_t I>
   requires(I < template_info<T>::parameter_count && variadic_type_template<T>)
 using template_parameter_t = typename template_info<T>::template parameter<I>;
@@ -171,4 +197,3 @@ concept template_specialization = template_instantiation<T>;
 
 }  // namespace ctti
 
-#endif  // CTTI_TEMPLATE_INFO_HPP

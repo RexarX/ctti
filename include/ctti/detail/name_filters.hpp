@@ -1,6 +1,6 @@
-#ifndef CTTI_DETAIL_NAME_FILTERS_HPP
-#define CTTI_DETAIL_NAME_FILTERS_HPP
+#pragma once
 
+#include <cstddef>
 #include <string_view>
 
 namespace ctti::detail {
@@ -18,7 +18,7 @@ constexpr std::string_view TrimWhitespace(std::string_view str) noexcept {
 constexpr std::string_view FilterPrefix(std::string_view str, std::string_view prefix) noexcept {
   str = TrimWhitespace(str);
   if (str.size() >= prefix.size() && str.starts_with(prefix)) {
-    auto remaining = str.substr(prefix.size());
+    const auto remaining = str.substr(prefix.size());
     return TrimWhitespace(remaining);
   }
   return str;
@@ -85,5 +85,3 @@ constexpr std::string_view FilterEnumValue(std::string_view name) noexcept {
 }
 
 }  // namespace ctti::detail
-
-#endif  // CTTI_DETAIL_NAME_FILTERS_HPP
