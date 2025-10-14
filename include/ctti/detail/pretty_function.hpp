@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <string_view>
+#include <utility>
 
 #if defined(__clang__)
 #define CTTI_PRETTY_FUNCTION __PRETTY_FUNCTION__
@@ -30,36 +31,37 @@ struct PrettyFunction {
 inline namespace pretty_function {
 
 template <typename T>
-constexpr std::string_view type() noexcept {
+[[nodiscard]] constexpr std::string_view type() noexcept {
   return PrettyFunction::Type<T>();
 }
 
 template <typename T, T ValueParam>
-constexpr std::string_view value() noexcept {
+[[nodiscard]] constexpr std::string_view value() noexcept {
   return PrettyFunction::Value<T, ValueParam>();
 }
 
 template <typename T>
-constexpr std::string_view Type() noexcept {
+[[nodiscard]] constexpr std::string_view Type() noexcept {
   return PrettyFunction::Type<T>();
 }
 
 template <typename T, T ValueParam>
-constexpr std::string_view Value() noexcept {
+[[nodiscard]] constexpr std::string_view Value() noexcept {
   return PrettyFunction::Value<T, ValueParam>();
 }
 
 }  // namespace pretty_function
 
-constexpr bool IsAlphaNumeric(char ch) noexcept {
+[[nodiscard]] constexpr bool IsAlphaNumeric(char ch) noexcept {
   return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9');
 }
 
-constexpr bool IsValidIdentifierChar(char ch) noexcept {
+[[nodiscard]] constexpr bool IsValidIdentifierChar(char ch) noexcept {
   return IsAlphaNumeric(ch) || ch == '_';
 }
 
-constexpr std::string_view FindTypeInSignature(std::string_view signature, std::string_view known_type) noexcept {
+[[nodiscard]] constexpr std::string_view FindTypeInSignature(std::string_view signature,
+                                                             std::string_view known_type) noexcept {
   const auto pos = signature.find(known_type);
   if (pos == std::string_view::npos) {
     return {};
@@ -72,7 +74,7 @@ constexpr std::string_view FindTypeInSignature(std::string_view signature, std::
   return (is_start_valid && is_end_valid) ? known_type : std::string_view{};
 }
 
-constexpr std::pair<std::size_t, std::size_t> DetectPrettyFunctionOffsetsForCompiler() noexcept {
+[[nodiscard]] constexpr auto DetectPrettyFunctionOffsetsForCompiler() noexcept -> std::pair<std::size_t, std::size_t> {
 #if defined(__clang__)
   constexpr std::string_view test_signature = PrettyFunction::Type<int>();
 

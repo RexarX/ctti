@@ -15,24 +15,24 @@ struct StaticValue {
   constexpr auto operator<=>(const StaticValue&) const noexcept = default;
   constexpr bool operator==(const StaticValue&) const noexcept = default;
 
-  friend constexpr bool operator==([[maybe_unused]] const StaticValue& value, const value_type& other) noexcept {
+  friend constexpr bool operator==(const StaticValue& /*value*/, const value_type& other) noexcept {
     return kValue == other;
   }
 
-  friend constexpr bool operator==(const value_type& other, [[maybe_unused]] const StaticValue& value) noexcept {
+  friend constexpr bool operator==(const value_type& other, const StaticValue& /*value*/) noexcept {
     return kValue == other;
   }
 
-  friend constexpr auto operator<=>([[maybe_unused]] const StaticValue& value, const value_type& other) noexcept {
+  friend constexpr auto operator<=>(const StaticValue& /*value*/, const value_type& other) noexcept {
     return kValue <=> other;
   }
 
-  friend constexpr auto operator<=>(const value_type& other, [[maybe_unused]] const StaticValue& value) noexcept {
+  friend constexpr auto operator<=>(const value_type& other, const StaticValue& /*value*/) noexcept {
     return other <=> kValue;
   }
 
-  static constexpr value_type Get() noexcept { return kValue; }
-  constexpr operator value_type() const noexcept { return Get(); }
+  [[nodiscard]] static constexpr value_type Get() noexcept { return kValue; }
+  constexpr explicit operator value_type() const noexcept { return Get(); }
 };
 
 }  // namespace ctti::detail

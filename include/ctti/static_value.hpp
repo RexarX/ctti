@@ -4,6 +4,9 @@
 
 namespace ctti {
 
+/**
+ * @brief A class that represents a static value of a given type.
+ */
 template <typename T, T Value>
 class static_value {
 private:
@@ -18,6 +21,16 @@ public:
 
   constexpr bool operator==(const static_value&) const noexcept = default;
   constexpr auto operator<=>(const static_value&) const noexcept = default;
+
+  template <T OtherValue>
+  [[nodiscard]] constexpr bool operator==(const static_value<T, OtherValue>& /*other*/) const noexcept {
+    return value == OtherValue;
+  }
+
+  template <T OtherValue>
+  [[nodiscard]] constexpr auto operator<=>(const static_value<T, OtherValue>& /*other*/) const noexcept {
+    return value <=> OtherValue;
+  }
 
   friend constexpr bool operator==([[maybe_unused]] const static_value& val, const value_type& other) noexcept {
     return value == other;
@@ -35,17 +48,32 @@ public:
     return other <=> value;
   }
 
-  static constexpr value_type get() noexcept { return internal_type::Get(); }
-  constexpr operator value_type() const noexcept { return get(); }
+  /**
+   * @brief Get the static value.
+   * @return The static value.
+   */
+  [[nodiscard]] static constexpr value_type get() noexcept { return internal_type::Get(); }
+  [[nodiscard]] explicit constexpr operator value_type() const noexcept { return get(); }
 };
 
+/**
+ * @brief Create a static_value instance.
+ * @tparam T The type of the value.
+ * @tparam Value The value.
+ * @return A static_value instance.
+ */
 template <typename T, T Value>
-constexpr static_value<T, Value> make_static_value() noexcept {
+[[nodiscard]] constexpr auto make_static_value() noexcept -> static_value<T, Value> {
   return {};
 }
 
+/**
+ * @brief Create a static_value instance with automatic type deduction.
+ * @tparam Value The value.
+ * @return A static_value instance.
+ */
 template <auto Value>
-constexpr auto make_static_value() noexcept {
+[[nodiscard]] constexpr auto make_static_value() noexcept -> static_value<decltype(Value), Value> {
   return static_value<decltype(Value), Value>{};
 }
 

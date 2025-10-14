@@ -1,16 +1,16 @@
 #pragma once
 
-#include <ctti/detail/meta.hpp>
-
 #include <concepts>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 
 namespace ctti::detail {
 
-enum class OverloadMatchQuality {
+enum class OverloadMatchQuality : std::int8_t {
   kNotCallable = -1,  // Cannot be called with given arguments
   kFallback = 0,      // Can be called but with some issues
   kConvertible = 1,   // Arguments can be converted to parameter types
@@ -33,13 +33,13 @@ struct MemberTraits<T Class::*> {
 
   template <typename Obj>
     requires std::derived_from<std::remove_reference_t<Obj>, Class>
-  static constexpr const value_type& Get(const Obj& object, pointer_type member) noexcept {
+  [[nodiscard]] static constexpr const value_type& Get(const Obj& object, pointer_type member) noexcept {
     return object.*member;
   }
 
   template <typename Obj>
     requires std::derived_from<std::remove_reference_t<Obj>, Class>
-  static constexpr value_type& Get(Obj& object, pointer_type member) noexcept {
+  [[nodiscard]] static constexpr value_type& Get(Obj& object, pointer_type member) noexcept {
     return object.*member;
   }
 
@@ -73,13 +73,13 @@ struct MemberTraits<Return (Class::*)(Args...)> {
 
   template <typename Obj, typename... CallArgs>
     requires std::is_invocable_r_v<Return, pointer_type, Obj&&, CallArgs&&...>
-  static constexpr Return Call(Obj&& object, pointer_type member, CallArgs&&... args) noexcept(
+  [[nodiscard]] static constexpr Return Call(Obj&& object, pointer_type member, CallArgs&&... args) noexcept(
       std::is_nothrow_invocable_v<pointer_type, Obj&&, CallArgs&&...>) {
     return std::invoke(member, std::forward<Obj>(object), std::forward<CallArgs>(args)...);
   }
 
   template <typename Signature>
-  static constexpr bool CanCallWithSignature() noexcept {
+  [[nodiscard]] static constexpr bool CanCallWithSignature() noexcept {
     return std::same_as<Signature, signature_type>;
   }
 };
@@ -105,13 +105,13 @@ struct MemberTraits<Return (Class::*)(Args...) const> {
 
   template <typename Obj, typename... CallArgs>
     requires std::is_invocable_r_v<Return, pointer_type, Obj&&, CallArgs&&...>
-  static constexpr Return Call(Obj&& object, pointer_type member, CallArgs&&... args) noexcept(
+  [[nodiscard]] static constexpr Return Call(Obj&& object, pointer_type member, CallArgs&&... args) noexcept(
       std::is_nothrow_invocable_v<pointer_type, Obj&&, CallArgs&&...>) {
     return std::invoke(member, std::forward<Obj>(object), std::forward<CallArgs>(args)...);
   }
 
   template <typename Signature>
-  static constexpr bool CanCallWithSignature() noexcept {
+  [[nodiscard]] static constexpr bool CanCallWithSignature() noexcept {
     return std::same_as<Signature, signature_type>;
   }
 };
@@ -124,7 +124,7 @@ struct OverloadSignature {
   static constexpr auto kMemberPtr = MemberPtr;
 
   template <typename Signature>
-  static constexpr bool CanCallWithSignature() noexcept {
+  [[nodiscard]] static constexpr bool CanCallWithSignature() noexcept {
     if constexpr (traits_type::kIsFunctionMember) {
       return traits_type::template CanCallWithSignature<Signature>();
     } else {
@@ -134,7 +134,7 @@ struct OverloadSignature {
 
   template <typename Obj, typename... Args>
     requires(std::invocable<decltype(MemberPtr), Obj &&, Args && ...>)
-  static constexpr decltype(auto) Call(Obj&& obj, Args&&... args) noexcept(
+  [[nodiscard]] static constexpr decltype(auto) Call(Obj&& obj, Args&&... args) noexcept(
       (std::is_nothrow_invocable_v<decltype(MemberPtr), Obj&&, Args&&...>)) {
     if constexpr (traits_type::kIsFunctionMember) {
       return std::invoke(kMemberPtr, std::forward<Obj>(obj), std::forward<Args>(args)...);
@@ -147,7 +147,7 @@ struct OverloadSignature {
 
 // Helper to check if argument types can be promoted to parameter types
 template <typename From, typename To>
-constexpr bool IsPromotable() noexcept {
+[[nodiscard]] constexpr bool IsPromotable() noexcept {
   if constexpr (std::same_as<From, To>) {
     return false;  // Exact match, not a promotion
   } else if constexpr (std::integral<From> && std::integral<To>) {
@@ -162,7 +162,7 @@ constexpr bool IsPromotable() noexcept {
 
 // Helper to rank overload matches
 template <auto MemberPtr, typename Obj, typename... Args>
-constexpr OverloadMatchQuality GetOverloadMatchQuality() noexcept {
+[[nodiscard]] constexpr OverloadMatchQuality GetOverloadMatchQuality() noexcept {
   using member_traits = MemberTraits<std::remove_cvref_t<decltype(MemberPtr)>>;
 
   if constexpr (!std::invocable<decltype(MemberPtr), Obj, Args...>) {
@@ -206,7 +206,7 @@ public:
   static constexpr std::size_t kCount = sizeof...(MemberPtrs);
 
   template <typename Signature>
-  static constexpr bool HasOverloadWithSignature() noexcept {
+  [[nodiscard]] static constexpr bool HasOverloadWithSignature() noexcept {
     if constexpr (kCount > 0) {
       return (CanCallOverloadWithSignature<MemberPtrs, Signature>() || ...);
     }
@@ -214,7 +214,7 @@ public:
   }
 
   template <typename Obj, typename... Args>
-  static constexpr bool HasOverload() noexcept {
+  [[nodiscard]] static constexpr bool HasOverload() noexcept {
     if constexpr (kCount > 0) {
       return (CanCallOverload<MemberPtrs, Obj, Args...>() || ...);
     }
@@ -223,48 +223,52 @@ public:
 
   template <typename Obj, typename... Args>
     requires(HasOverload<Obj, Args...>())
-  static constexpr decltype(auto) Call(Obj&& obj, Args&&... args) noexcept(
+  [[nodiscard]] static constexpr decltype(auto) Call(Obj&& obj, Args&&... args) noexcept(
       noexcept(CallBestMatching<Obj, Args...>(std::forward<Obj>(obj), std::forward<Args>(args)...))) {
     return CallBestMatching<Obj, Args...>(std::forward<Obj>(obj), std::forward<Args>(args)...);
   }
 
 private:
   template <auto MemberPtr, typename Signature>
-  static constexpr bool CanCallOverloadWithSignature() noexcept {
+  [[nodiscard]] static constexpr bool CanCallOverloadWithSignature() noexcept {
     return OverloadSignature<MemberPtr>::template CanCallWithSignature<Signature>();
   }
 
   template <auto MemberPtr, typename Obj, typename... Args>
-  static constexpr bool CanCallOverload() noexcept {
+  [[nodiscard]] static constexpr bool CanCallOverload() noexcept {
     return GetOverloadMatchQuality<MemberPtr, Obj, Args...>() != OverloadMatchQuality::kNotCallable;
   }
 
   template <typename Obj, typename... Args>
-  static constexpr decltype(auto) CallBestMatching(Obj&& obj, Args&&... args) {
+  [[nodiscard]] static constexpr decltype(auto) CallBestMatching(Obj&& obj, Args&&... args) {
     return FindBestMatch<0, OverloadMatchQuality::kNotCallable, 0, Obj, Args...>(std::forward<Obj>(obj),
                                                                                  std::forward<Args>(args)...);
   }
 
   template <std::size_t Index, OverloadMatchQuality BestQuality, std::size_t BestIndex, typename Obj, typename... Args>
-  static constexpr decltype(auto) FindBestMatch(Obj&& obj, Args&&... args) {
-    if constexpr (Index < kCount) {
-      constexpr auto current_ptr = std::get<Index>(std::make_tuple(MemberPtrs...));
-      constexpr auto current_quality = GetOverloadMatchQuality<current_ptr, Obj, Args...>();
-
-      if constexpr (current_quality > BestQuality) {
-        return FindBestMatch<Index + 1, current_quality, Index, Obj, Args...>(std::forward<Obj>(obj),
-                                                                              std::forward<Args>(args)...);
-      } else {
-        return FindBestMatch<Index + 1, BestQuality, BestIndex, Obj, Args...>(std::forward<Obj>(obj),
-                                                                              std::forward<Args>(args)...);
-      }
-    } else {
-      // We've found the best match, now call it
-      static_assert(BestQuality != OverloadMatchQuality::kNotCallable, "No viable overload found");
-      constexpr auto best_ptr = std::get<BestIndex>(std::make_tuple(MemberPtrs...));
-      return std::invoke(best_ptr, std::forward<Obj>(obj), std::forward<Args>(args)...);
-    }
-  }
+  [[nodiscard]] static constexpr decltype(auto) FindBestMatch(Obj&& obj, Args&&... args);
 };
+
+template <auto... MemberPtrs>
+template <std::size_t Index, OverloadMatchQuality BestQuality, std::size_t BestIndex, typename Obj, typename... Args>
+constexpr decltype(auto) MemberOverloadSet<MemberPtrs...>::FindBestMatch(Obj&& obj, Args&&... args) {
+  if constexpr (Index < kCount) {
+    constexpr auto current_ptr = std::get<Index>(std::make_tuple(MemberPtrs...));
+    constexpr auto current_quality = GetOverloadMatchQuality<current_ptr, Obj, Args...>();
+
+    if constexpr (current_quality > BestQuality) {
+      return FindBestMatch<Index + 1, current_quality, Index, Obj, Args...>(std::forward<Obj>(obj),
+                                                                            std::forward<Args>(args)...);
+    } else {
+      return FindBestMatch<Index + 1, BestQuality, BestIndex, Obj, Args...>(std::forward<Obj>(obj),
+                                                                            std::forward<Args>(args)...);
+    }
+  } else {
+    // We've found the best match, now call it
+    static_assert(BestQuality != OverloadMatchQuality::kNotCallable, "No viable overload found");
+    constexpr auto best_ptr = std::get<BestIndex>(std::make_tuple(MemberPtrs...));
+    return std::invoke(best_ptr, std::forward<Obj>(obj), std::forward<Args>(args)...);
+  }
+}
 
 }  // namespace ctti::detail

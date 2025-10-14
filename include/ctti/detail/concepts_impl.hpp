@@ -1,6 +1,5 @@
 #pragma once
 
-#include <ctti/detail/meta.hpp>
 #include <ctti/type_tag.hpp>
 
 #include <concepts>
@@ -14,7 +13,7 @@ concept HasCustomNameOf = requires {
 };
 
 template <typename T>
-consteval bool HasAdlModel() noexcept {
+[[nodiscard]] consteval bool HasAdlModel() noexcept {
   if constexpr (requires { ctti_model(ctti::type_tag<T>{}); }) {
     using model_type = decltype(ctti_model(ctti::type_tag<T>{}));
     if constexpr (requires { model_type::size; }) {
@@ -25,7 +24,7 @@ consteval bool HasAdlModel() noexcept {
 }
 
 template <typename T>
-consteval bool HasIntrusiveModel() noexcept {
+[[nodiscard]] consteval bool HasIntrusiveModel() noexcept {
   if constexpr (requires { typename T::ctti_model; }) {
     using model_type = typename T::ctti_model;
     if constexpr (requires { model_type::size; }) {

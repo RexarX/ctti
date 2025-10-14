@@ -1,14 +1,14 @@
 cmake_minimum_required(VERSION 3.24)
 
 project(ctti
-    VERSION 1.0.0
+    VERSION 1.0.1
     DESCRIPTION "Compile Time Type Introspection library"
     HOMEPAGE_URL "https://github.com/RexarX/ctti"
     LANGUAGES CXX
 )
 
 if(PROJECT_IS_TOP_LEVEL)
-    set(CMAKE_CXX_STANDARD 23)
+    set(CMAKE_CXX_STANDARD 20)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     set(CMAKE_CXX_EXTENSIONS OFF)
     set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -22,22 +22,12 @@ option(CTTI_USE_CPM "Use CPM for dependencies" ${PROJECT_IS_TOP_LEVEL})
 add_library(ctti INTERFACE)
 add_library(ctti::ctti ALIAS ctti)
 
-target_include_directories(ctti INTERFACE
+target_include_directories(ctti SYSTEM INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
 
-target_compile_features(ctti INTERFACE cxx_std_23)
-
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
-    target_compile_options(ctti INTERFACE
-        $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra>
-    )
-elseif(MSVC)
-    target_compile_options(ctti INTERFACE
-        $<$<COMPILE_LANGUAGE:CXX>:/permissive->
-    )
-endif()
+target_compile_features(ctti INTERFACE cxx_std_20)
 
 if(CTTI_USE_CPM)
     include(cmake/CPM.cmake)

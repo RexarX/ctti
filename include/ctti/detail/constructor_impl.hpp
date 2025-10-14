@@ -1,12 +1,9 @@
 #pragma once
 
-#include <ctti/detail/meta.hpp>
-#include <ctti/detail/name_impl.hpp>
-#include <ctti/type_tag.hpp>
-
 #include <concepts>
 #include <cstddef>
 #include <memory>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 
@@ -36,7 +33,7 @@ struct ConstructorInfo {
 
   template <typename... Args>
     requires Constructible<T, Args...>
-  static constexpr T Construct(Args&&... args) noexcept(NothrowConstructible<T, Args...>) {
+  [[nodiscard]] static constexpr T Construct(Args&&... args) noexcept(NothrowConstructible<T, Args...>) {
     if constexpr (AggregateType<T> && sizeof...(Args) > 0) {
       return T{std::forward<Args>(args)...};
     } else {
@@ -46,33 +43,33 @@ struct ConstructorInfo {
 
   template <typename... Args>
     requires Constructible<T, Args...>
-  static constexpr std::unique_ptr<T> MakeUnique(Args&&... args) {
+  [[nodiscard]] static constexpr auto MakeUnique(Args&&... args) -> std::unique_ptr<T> {
     return std::make_unique<T>(std::forward<Args>(args)...);
   }
 
   template <typename... Args>
     requires Constructible<T, Args...>
-  static constexpr std::shared_ptr<T> MakeShared(Args&&... args) {
+  [[nodiscard]] static constexpr auto MakeShared(Args&&... args) -> std::shared_ptr<T> {
     return std::make_shared<T>(std::forward<Args>(args)...);
   }
 
   template <typename... Args>
-  static constexpr bool CanConstruct() noexcept {
+  [[nodiscard]] static constexpr bool CanConstruct() noexcept {
     return Constructible<T, Args...>;
   }
 
   template <typename... Args>
-  static constexpr bool CanConstructNothrow() noexcept {
+  [[nodiscard]] static constexpr bool CanConstructNothrow() noexcept {
     if constexpr (Constructible<T, Args...>) {
       return NothrowConstructible<T, Args...>;
     }
     return false;
   }
 
-  static constexpr bool IsDefaultConstructible() noexcept { return DefaultConstructible<T>; }
-  static constexpr bool IsCopyConstructible() noexcept { return CopyConstructible<T>; }
-  static constexpr bool IsMoveConstructible() noexcept { return MoveConstructible<T>; }
-  static constexpr bool IsAggregate() noexcept { return AggregateType<T>; }
+  [[nodiscard]] static constexpr bool IsDefaultConstructible() noexcept { return DefaultConstructible<T>; }
+  [[nodiscard]] static constexpr bool IsCopyConstructible() noexcept { return CopyConstructible<T>; }
+  [[nodiscard]] static constexpr bool IsMoveConstructible() noexcept { return MoveConstructible<T>; }
+  [[nodiscard]] static constexpr bool IsAggregate() noexcept { return AggregateType<T>; }
 };
 
 template <typename T, typename... Args>

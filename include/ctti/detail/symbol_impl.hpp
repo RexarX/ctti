@@ -15,7 +15,7 @@
 namespace ctti::detail {
 
 template <typename AttributeList, auto Value>
-constexpr bool SymbolHasAttributeValue() noexcept {
+[[nodiscard]] constexpr bool SymbolHasAttributeValue() noexcept {
   if constexpr (AttributeList::kSize == 0) {
     return false;
   } else {
@@ -26,7 +26,7 @@ constexpr bool SymbolHasAttributeValue() noexcept {
 }
 
 template <typename AttributeList, typename Tag>
-constexpr bool SymbolHasAttributeTag() noexcept {
+[[nodiscard]] constexpr bool SymbolHasAttributeTag() noexcept {
   if constexpr (AttributeList::kSize == 0) {
     return false;
   } else {
@@ -47,7 +47,7 @@ struct Symbol {
   static constexpr std::size_t kOverloadCount = sizeof...(MemberPtrs);
 
   template <typename T>
-  static constexpr bool IsOwnerOf() noexcept {
+  [[nodiscard]] static constexpr bool IsOwnerOf() noexcept {
     if constexpr (kHasOverloads) {
       return ((std::same_as<std::remove_cvref_t<T>, typename MemberTraits<decltype(MemberPtrs)>::class_type>) || ...);
     }
@@ -55,22 +55,22 @@ struct Symbol {
   }
 
   template <typename Attribute>
-  static constexpr bool HasAttribute() noexcept {
+  [[nodiscard]] static constexpr bool HasAttribute() noexcept {
     return Contains<Attribute, AttributesType>::value;
   }
 
   template <auto Value>
-  static constexpr bool HasAttributeValue() noexcept {
+  [[nodiscard]] static constexpr bool HasAttributeValue() noexcept {
     return SymbolHasAttributeValue<AttributesType, Value>();
   }
 
   template <typename Tag>
-  static constexpr bool HasTag() noexcept {
+  [[nodiscard]] static constexpr bool HasTag() noexcept {
     return SymbolHasAttributeTag<AttributesType, Tag>();
   }
 
   template <typename Signature>
-  static constexpr bool HasOverloadWithSignature() noexcept {
+  [[nodiscard]] static constexpr bool HasOverloadWithSignature() noexcept {
     if constexpr (kHasOverloads) {
       return OverloadSetType::template HasOverloadWithSignature<Signature>();
     }
@@ -78,7 +78,7 @@ struct Symbol {
   }
 
   template <typename Obj, typename... Args>
-  static constexpr bool HasOverload() noexcept {
+  [[nodiscard]] static constexpr bool HasOverload() noexcept {
     if constexpr (kHasOverloads) {
       return OverloadSetType::template HasOverload<std::remove_cvref_t<Obj>, Args...>();
     }
@@ -87,13 +87,13 @@ struct Symbol {
 
   template <typename T, typename... Args>
     requires(kHasOverloads)
-  static constexpr decltype(auto) Call(T&& obj, Args&&... args) noexcept(
+  [[nodiscard]] static constexpr decltype(auto) Call(T&& obj, Args&&... args) noexcept(
       noexcept(OverloadSetType::template Call<T, Args...>(std::forward<T>(obj), std::forward<Args>(args)...))) {
     return OverloadSetType::template Call<T, Args...>(std::forward<T>(obj), std::forward<Args>(args)...);
   }
 
   template <typename T>
-  static constexpr auto GetMember() noexcept {
+  [[nodiscard]] static constexpr auto GetMember() noexcept {
     if constexpr (sizeof...(MemberPtrs) == 1) {
       return std::get<0>(std::make_tuple(MemberPtrs...));
     } else {
@@ -103,7 +103,7 @@ struct Symbol {
 
   template <typename T>
     requires(IsOwnerOf<std::remove_cvref_t<T>>())
-  static constexpr decltype(auto) GetValue(T&& obj) noexcept {
+  [[nodiscard]] static constexpr decltype(auto) GetValue(T&& obj) noexcept {
     constexpr auto member = GetMember<std::decay_t<T>>();
     if constexpr (!std::same_as<std::remove_cvref_t<decltype(member)>, std::nullptr_t>) {
       using member_type = std::remove_cvref_t<decltype(member)>;
@@ -143,7 +143,7 @@ struct SymbolDefinition {
   static constexpr auto kPointer = Ptr;
   static constexpr HashType kHash = Fnv1aHash(kName);
 
-  static constexpr auto MakeSymbol() noexcept { return SymbolType{}; }
+  [[nodiscard]] static constexpr auto MakeSymbol() noexcept -> SymbolType { return SymbolType{}; }
 };
 
 template <CompileTimeString Name, typename AttributeList, auto... Pointers>
@@ -158,17 +158,18 @@ struct OverloadedSymbolDefinition {
 };
 
 template <CompileTimeString Name, auto Ptr>
-consteval auto MakeSymbolDefinition() noexcept {
+[[nodiscard]] consteval auto MakeSymbolDefinition() noexcept -> SymbolDefinition<Name, Ptr> {
   return SymbolDefinition<Name, Ptr>{};
 }
 
 template <CompileTimeString Name, auto Ptr, typename... Attributes>
-consteval auto MakeAttributedSymbolDefinition() noexcept {
+[[nodiscard]] consteval auto MakeAttributedSymbolDefinition() noexcept -> SymbolDefinition<Name, Ptr, Attributes...> {
   return SymbolDefinition<Name, Ptr, Attributes...>{};
 }
 
 template <CompileTimeString Name, typename AttributeList, auto... Ptrs>
-consteval auto MakeOverloadedSymbolDefinition() noexcept {
+[[nodiscard]] consteval auto MakeOverloadedSymbolDefinition() noexcept
+    -> OverloadedSymbolDefinition<Name, AttributeList, Ptrs...> {
   return OverloadedSymbolDefinition<Name, AttributeList, Ptrs...>{};
 }
 

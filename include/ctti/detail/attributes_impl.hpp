@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 
 namespace ctti::detail {
 
@@ -17,16 +18,16 @@ struct AttributeValue {
   using value_type = decltype(Value);
   static constexpr value_type kValue = Value;
 
-  friend constexpr bool operator==([[maybe_unused]] const AttributeValue& value, const value_type& other) noexcept {
+  friend constexpr bool operator==(const AttributeValue& /*value*/, const value_type& other) noexcept {
     return kValue == other;
   }
 
-  friend constexpr bool operator==(const value_type& other, [[maybe_unused]] const AttributeValue& value) noexcept {
+  friend constexpr bool operator==(const value_type& other, const AttributeValue& /*value*/) noexcept {
     return kValue == other;
   }
 
-  constexpr value_type Get() const noexcept { return kValue; }
-  constexpr operator value_type() const noexcept { return Get(); }
+  [[nodiscard]] constexpr value_type Get() const noexcept { return kValue; }
+  constexpr explicit operator value_type() const noexcept { return Get(); }
 };
 
 template <typename Tag>
@@ -55,7 +56,7 @@ concept AttributeType = (requires {
                         });
 
 template <typename Attr, auto Value>
-constexpr bool AttributeHasValue() noexcept {
+[[nodiscard]] constexpr bool AttributeHasValue() noexcept {
   if constexpr (requires {
                   typename Attr::value_type;
                   { Attr::value } -> std::convertible_to<typename Attr::value_type>;
@@ -67,9 +68,9 @@ constexpr bool AttributeHasValue() noexcept {
 }
 
 template <typename Attr, typename Tag>
-constexpr bool AttributeHasTag() noexcept {
+[[nodiscard]] constexpr bool AttributeHasTag() noexcept {
   if constexpr (requires { typename Attr::tag_type; }) {
-    return std::is_same_v<typename Attr::tag_type, Tag>;
+    return std::same_as<typename Attr::tag_type, Tag>;
   }
   return false;
 }
@@ -86,22 +87,22 @@ struct AttributeList {
   using At = typename attributes_type::template At<I>;
 
   template <typename T>
-  static constexpr bool Has() noexcept {
+  [[nodiscard]] static constexpr bool Has() noexcept {
     return Contains<T, attributes_type>::value;
   }
 
   template <auto Value>
-  static constexpr bool HasValue() noexcept {
+  [[nodiscard]] static constexpr bool HasValue() noexcept {
     return (... || AttributeHasValue<Attributes, Value>());
   }
 
   template <typename Tag>
-  static constexpr bool HasTag() noexcept {
+  [[nodiscard]] static constexpr bool HasTag() noexcept {
     return (... || AttributeHasTag<Attributes, Tag>());
   }
 
   template <CompileTimeString Name>
-  static constexpr bool HasNamed() noexcept {
+  [[nodiscard]] static constexpr bool HasNamed() noexcept {
     return (... || (requires { Attributes::name; } && Attributes::name == Name.View()));
   }
 
@@ -112,7 +113,7 @@ struct AttributeList {
     (func(Identity<Attributes>{}), ...);
   }
 
-  static constexpr std::array<std::string_view, kSize> GetNames() noexcept {
+  [[nodiscard]] static constexpr auto GetNames() noexcept -> std::array<std::string_view, kSize> {
     if constexpr (kSize > 0) {
       return GetAttributeNames(std::index_sequence_for<Attributes...>{});
     } else {
@@ -122,7 +123,8 @@ struct AttributeList {
 
 private:
   template <std::size_t... Is>
-  static constexpr std::array<std::string_view, kSize> GetAttributeNames(std::index_sequence<Is...>) noexcept {
+  [[nodiscard]] static constexpr auto GetAttributeNames(std::index_sequence<Is...> /*sequence*/) noexcept
+      -> std::array<std::string_view, kSize> {
     auto get_name = []<typename Attr>() -> std::string_view {
       if constexpr (requires { Attr::kName; }) {
         return Attr::kName;

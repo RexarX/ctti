@@ -1,7 +1,5 @@
 #pragma once
 
-#include <ctti/detail/symbol_impl.hpp>
-
 #include <concepts>
 #include <type_traits>
 #include <utility>
@@ -12,8 +10,8 @@ struct DefaultSymbolMappingFunction {
   constexpr DefaultSymbolMappingFunction() noexcept = default;
 
   template <typename Source, typename SourceSymbol, typename Sink, typename SinkSymbol>
-  void operator()(const Source& source, [[maybe_unused]] SourceSymbol src_symbol, Sink& sink,
-                  [[maybe_unused]] SinkSymbol sink_symbol) const noexcept {
+  void operator()(const Source& source, SourceSymbol /*src_symbol*/, Sink& sink,
+                  SinkSymbol /*sink_symbol*/) const noexcept {
     if constexpr (SourceSymbol::template is_owner_of<Source>() && SinkSymbol::template is_owner_of<Sink>()) {
       sink.*(SinkSymbol::template get_member<Sink>()) = source.*(SourceSymbol::template get_member<Source>());
     }
@@ -38,9 +36,9 @@ class SymbolMapping {
 public:
   constexpr SymbolMapping() noexcept
     requires std::constructible_from<Function>
-      : function_{} {}
-  explicit constexpr SymbolMapping(Function&& function) noexcept : function_(std::forward<Function>(function)) {}
+  = default;
 
+  explicit constexpr SymbolMapping(Function&& function) noexcept : function_(std::forward<Function>(function)) {}
   constexpr SymbolMapping(const SymbolMapping&) noexcept = default;
   constexpr SymbolMapping(SymbolMapping&&) noexcept = default;
   constexpr ~SymbolMapping() noexcept = default;
@@ -60,13 +58,13 @@ private:
 };
 
 template <typename SourceSymbol, typename SinkSymbol, typename Function>
-constexpr SymbolMapping<SourceSymbol, SinkSymbol, std::remove_cvref_t<Function>> MakeMapping(
-    Function&& function) noexcept {
+[[nodiscard]] constexpr auto MakeMapping(Function&& function) noexcept
+    -> SymbolMapping<SourceSymbol, SinkSymbol, std::remove_cvref_t<Function>> {
   return SymbolMapping<SourceSymbol, SinkSymbol, std::remove_cvref_t<Function>>(std::forward<Function>(function));
 }
 
 template <typename SourceSymbol, typename SinkSymbol>
-constexpr SymbolMapping<SourceSymbol, SinkSymbol> MakeMapping() noexcept {
+[[nodiscard]] constexpr auto MakeMapping() noexcept -> SymbolMapping<SourceSymbol, SinkSymbol> {
   return SymbolMapping<SourceSymbol, SinkSymbol>();
 }
 

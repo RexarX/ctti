@@ -1,7 +1,6 @@
 #pragma once
 
 #include <ctti/detail/meta.hpp>
-#include <ctti/detail/symbol_impl.hpp>
 #include <ctti/type_tag.hpp>
 
 #include <cstddef>
@@ -15,10 +14,10 @@ struct Model {
 };
 
 template <typename T>
-consteval auto GetModelHelper(int) -> decltype(ctti_model(ctti::type_tag<T>{}));
+[[nodiscard]] consteval auto GetModelHelper(int) -> decltype(ctti_model(ctti::type_tag<T>{}));
 
 template <typename T>
-consteval Model<> GetModelHelper(...);
+[[nodiscard]] consteval Model<> GetModelHelper(...);
 
 template <typename T, typename = void>
 struct GetModel {
@@ -37,7 +36,7 @@ template <typename T>
 class HasModel {
 private:
   template <typename U>
-  static constexpr bool CheckIntrusive() noexcept {
+  [[nodiscard]] static constexpr bool CheckIntrusive() noexcept {
     if constexpr (requires { typename U::ctti_model; }) {
       using model_type = typename U::ctti_model;
       if constexpr (requires { model_type::size; }) {
@@ -48,7 +47,7 @@ private:
   }
 
   template <typename U>
-  static constexpr bool CheckAdl() noexcept {
+  [[nodiscard]] static constexpr bool CheckAdl() noexcept {
     if constexpr (requires { ctti_model(ctti::type_tag<U>{}); }) {
       using model_type = decltype(ctti_model(ctti::type_tag<U>{}));
       if constexpr (requires { model_type::size; }) {

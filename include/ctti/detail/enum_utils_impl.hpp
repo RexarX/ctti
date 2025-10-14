@@ -29,23 +29,23 @@ struct EnumInfo {
   using underlying_type = std::underlying_type_t<E>;
 
   template <E Value>
-  static constexpr std::string_view NameOfValue() noexcept {
+  [[nodiscard]] static constexpr std::string_view NameOfValue() noexcept {
     return ValueNameOfImpl<E, Value>::Apply();
   }
 
   template <E Value>
-  static constexpr underlying_type UnderlyingValue() noexcept {
+  [[nodiscard]] static constexpr underlying_type UnderlyingValue() noexcept {
     return static_cast<underlying_type>(Value);
   }
 
   template <std::convertible_to<underlying_type> T>
-  static constexpr std::optional<E> FromUnderlying(T value) noexcept {
+  [[nodiscard]] static constexpr auto FromUnderlying(T value) noexcept -> std::optional<E> {
     return static_cast<E>(value);
   }
 
-  static constexpr std::string_view Name() noexcept { return NameOfImpl<E>::Apply(); }
+  [[nodiscard]] static constexpr std::string_view Name() noexcept { return NameOfImpl<E>::Apply(); }
 
-  static constexpr bool IsScoped() noexcept { return ScopedEnum<E>; }
+  [[nodiscard]] static constexpr bool IsScoped() noexcept { return ScopedEnum<E>; }
 };
 
 template <typename E, E... Values>
@@ -56,11 +56,11 @@ struct EnumValueList {
 
   static constexpr std::size_t kCount = sizeof...(Values);
 
-  static constexpr std::array<E, kCount> ValueArray() noexcept { return {Values...}; }
+  [[nodiscard]] static constexpr auto ValueArray() noexcept -> std::array<E, kCount> { return {Values...}; }
 
   template <std::size_t I>
     requires(I < kCount)
-  static constexpr E At() noexcept {
+  [[nodiscard]] static constexpr E At() noexcept {
     return ValueArray()[I];
   }
 
@@ -73,24 +73,24 @@ struct EnumValueList {
   }
 
   template <E Value>
-  static constexpr bool Contains() noexcept {
+  [[nodiscard]] static constexpr bool Contains() noexcept {
     return ((Values == Value) || ...);
   }
 
-  static constexpr std::array<std::string_view, kCount> Names() noexcept {
+  [[nodiscard]] static constexpr auto Names() noexcept -> std::array<std::string_view, kCount> {
     return {ValueNameOfImpl<E, Values>::Apply()...};
   }
 };
 
 template <typename E, E Lhs, E Rhs>
   requires std::is_enum_v<E>
-constexpr bool EnumEqual() noexcept {
+[[nodiscard]] constexpr bool EnumEqual() noexcept {
   return Lhs == Rhs;
 }
 
 template <typename E, E Lhs, E Rhs>
   requires std::is_enum_v<E>
-constexpr bool EnumLess() noexcept {
+[[nodiscard]] constexpr bool EnumLess() noexcept {
   return static_cast<std::underlying_type_t<E>>(Lhs) < static_cast<std::underlying_type_t<E>>(Rhs);
 }
 

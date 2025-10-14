@@ -72,7 +72,7 @@ struct Pair {
   using key = Key;
   using value = Value;
 
-  static constexpr Pair Make(const Key&, const Value&) noexcept { return {}; }
+  static constexpr Pair Make(const Key& /*key*/, const Value& /*value*/) noexcept { return {}; }
 };
 
 template <typename Pair>
@@ -143,7 +143,7 @@ template <std::int64_t I>
 using Int64 = std::integral_constant<std::int64_t, I>;
 
 template <typename T>
-constexpr auto GetValue() noexcept {
+[[nodiscard]] constexpr auto GetValue() noexcept {
   return T::value;
 }
 

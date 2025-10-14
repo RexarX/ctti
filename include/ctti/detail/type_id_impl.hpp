@@ -23,8 +23,8 @@ public:
   constexpr auto operator<=>(const TypeId&) const noexcept = default;
   constexpr bool operator==(const TypeId&) const noexcept = default;
 
-  constexpr HashType GetHash() const noexcept { return hash_; }
-  constexpr std::string_view GetName() const noexcept { return name_; }
+  [[nodiscard]] constexpr HashType GetHash() const noexcept { return hash_; }
+  [[nodiscard]] constexpr std::string_view GetName() const noexcept { return name_; }
 
 private:
   std::string_view name_ = "void";
@@ -45,7 +45,7 @@ public:
   constexpr auto operator<=>(const TypeIndex&) const noexcept = default;
   constexpr bool operator==(const TypeIndex&) const noexcept = default;
 
-  constexpr HashType GetHash() const noexcept { return hash_; }
+  [[nodiscard]] constexpr HashType GetHash() const noexcept { return hash_; }
 
 private:
   HashType hash_;
@@ -56,7 +56,7 @@ constexpr TypeIndex IdFromName(std::string_view type_name) noexcept {
 }
 
 template <typename T>
-constexpr TypeId TypeIdOf() noexcept {
+[[nodiscard]] constexpr TypeId TypeIdOf() noexcept {
   constexpr auto type_name = NameOfImpl<T>::Apply();
 
   static_assert(type_name != "invalid_signature", "Failed to extract type name");
@@ -67,27 +67,23 @@ constexpr TypeId TypeIdOf() noexcept {
 }
 
 template <typename T>
-constexpr TypeIndex TypeIndexOf() noexcept {
+[[nodiscard]] constexpr TypeIndex TypeIndexOf() noexcept {
   constexpr auto type_name = NameOfImpl<T>::Apply();
   return TypeIndex{Fnv1aHash(type_name)};
 }
 
 }  // namespace ctti::detail
 
-namespace std {
-
 template <>
-struct hash<ctti::detail::TypeId> {
+struct std::hash<ctti::detail::TypeId> {
   constexpr std::size_t operator()(const ctti::detail::TypeId& id) const noexcept {
     return static_cast<std::size_t>(id.GetHash());
   }
 };
 
 template <>
-struct hash<ctti::detail::TypeIndex> {
+struct std::hash<ctti::detail::TypeIndex> {
   constexpr std::size_t operator()(const ctti::detail::TypeIndex& id) const noexcept {
     return static_cast<std::size_t>(id.GetHash());
   }
 };
-
-}  // namespace std

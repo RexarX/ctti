@@ -1,23 +1,23 @@
 #pragma once
 
-#include <ctti/detail/compile_time_string.hpp>
 #include <ctti/detail/meta.hpp>
 #include <ctti/detail/pretty_function.hpp>
 
 #include <array>
 #include <concepts>
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <string_view>
 #include <type_traits>
 
 namespace ctti::detail {
 
-constexpr bool IsWhitespace(char ch) noexcept {
+[[nodiscard]] constexpr bool IsWhitespace(char ch) noexcept {
   return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r';
 }
 
-constexpr std::string_view TrimWhitespace(std::string_view str) noexcept {
+[[nodiscard]] constexpr std::string_view TrimWhitespace(std::string_view str) noexcept {
   while (!str.empty() && IsWhitespace(str.front())) {
     str = str.substr(1);
   }
@@ -27,7 +27,7 @@ constexpr std::string_view TrimWhitespace(std::string_view str) noexcept {
   return str;
 }
 
-constexpr std::string_view FilterPrefix(std::string_view str, std::string_view prefix) noexcept {
+[[nodiscard]] constexpr std::string_view FilterPrefix(std::string_view str, std::string_view prefix) noexcept {
   str = TrimWhitespace(str);
   if (str.size() >= prefix.size() && str.starts_with(prefix)) {
     return TrimWhitespace(str.substr(prefix.size()));
@@ -35,7 +35,7 @@ constexpr std::string_view FilterPrefix(std::string_view str, std::string_view p
   return str;
 }
 
-constexpr std::string_view FilterTypenamePrefix(std::string_view type_name) noexcept {
+[[nodiscard]] constexpr std::string_view FilterTypenamePrefix(std::string_view type_name) noexcept {
   type_name = FilterPrefix(type_name, "class ");
   type_name = FilterPrefix(type_name, "struct ");
   type_name = FilterPrefix(type_name, "enum ");
@@ -44,7 +44,7 @@ constexpr std::string_view FilterTypenamePrefix(std::string_view type_name) noex
   return type_name;
 }
 
-constexpr std::string_view CleanupTypeName(std::string_view type_name) noexcept {
+[[nodiscard]] constexpr std::string_view CleanupTypeName(std::string_view type_name) noexcept {
   type_name = TrimWhitespace(type_name);
 
   // Only remove class/struct prefixes
@@ -65,57 +65,63 @@ constexpr std::string_view CleanupTypeName(std::string_view type_name) noexcept 
 template <std::int64_t N>
 class IntToStringHelper {
 private:
-  static constexpr std::size_t CalculateDigits() noexcept {
-    if constexpr (N == 0) {
-      return 1;
-    } else {
-      std::int64_t temp = N < 0 ? -N : N;
-      std::size_t digits = 0;
-      while (temp > 0) {
-        temp /= 10;
-        ++digits;
-      }
-      return N < 0 ? digits + 1 : digits;
-    }
-  }
+  [[nodiscard]] static constexpr std::size_t CalculateDigits() noexcept;
 
 public:
   static constexpr std::size_t kDigits = CalculateDigits();
 
-  static constexpr std::array<char, kDigits + 1> Generate() noexcept {
-    std::array<char, kDigits + 1> result{};
-
-    if constexpr (N == 0) {
-      result[0] = '0';
-      result[1] = '\0';
-    } else {
-      std::int64_t temp = N < 0 ? -N : N;
-      std::size_t pos = kDigits;
-      result[pos] = '\0';
-
-      while (temp > 0) {
-        result[--pos] = '0' + (temp % 10);
-        temp /= 10;
-      }
-
-      if constexpr (N < 0) {
-        result[0] = '-';
-      }
-    }
-
-    return result;
-  }
+  [[nodiscard]] static constexpr auto Generate() noexcept -> std::array<char, kDigits + 1>;
 
   static constexpr auto kValue = Generate();
 };
 
 template <std::int64_t N>
-constexpr std::string_view GetIntegerString() noexcept {
+constexpr std::size_t IntToStringHelper<N>::CalculateDigits() noexcept {
+  if constexpr (N == 0) {
+    return 1;
+  } else {
+    std::int64_t temp = N < 0 ? -N : N;
+    std::size_t digits = 0;
+    while (temp > 0) {
+      temp /= 10;
+      ++digits;
+    }
+    return N < 0 ? digits + 1 : digits;
+  }
+}
+
+template <std::int64_t N>
+constexpr auto IntToStringHelper<N>::Generate() noexcept -> std::array<char, IntToStringHelper<N>::kDigits + 1> {
+  std::array<char, kDigits + 1> result = {};
+
+  if constexpr (N == 0) {
+    result[0] = '0';
+    result[1] = '\0';
+  } else {
+    std::int64_t temp = N < 0 ? -N : N;
+    std::size_t pos = kDigits;
+    result[pos] = '\0';
+
+    while (temp > 0) {
+      result[--pos] = '0' + (temp % 10);
+      temp /= 10;
+    }
+
+    if constexpr (N < 0) {
+      result[0] = '-';
+    }
+  }
+
+  return result;
+}
+
+template <std::int64_t N>
+[[nodiscard]] constexpr std::string_view GetIntegerString() noexcept {
   constexpr auto& str_array = IntToStringHelper<N>::kValue;
   return std::string_view{str_array.data()};
 }
 
-constexpr std::string_view ExtractEnumValueName(std::string_view full_name) noexcept {
+[[nodiscard]] constexpr std::string_view ExtractEnumValueName(std::string_view full_name) noexcept {
 #if defined(__clang__)
   // Clang format: "...[T = EnumType, ValueParam = Value]"
   const auto value_param_pos = full_name.find("ValueParam = ");
@@ -240,59 +246,60 @@ constexpr std::string_view ExtractEnumValueName(std::string_view full_name) noex
 }
 
 template <typename T>
-constexpr std::string_view GetBuiltinTypeName() noexcept {
-  if constexpr (std::same_as<T, void>)
+[[nodiscard]] constexpr std::string_view GetBuiltinTypeName() noexcept {
+  if constexpr (std::same_as<T, void>) {
     return "void";
-  else if constexpr (std::same_as<T, bool>)
+  } else if constexpr (std::same_as<T, bool>) {
     return "bool";
-  else if constexpr (std::same_as<T, char>)
+  } else if constexpr (std::same_as<T, char>) {
     return "char";
-  else if constexpr (std::same_as<T, signed char>)
+  } else if constexpr (std::same_as<T, signed char>) {
     return "signed char";
-  else if constexpr (std::same_as<T, unsigned char>)
+  } else if constexpr (std::same_as<T, unsigned char>) {
     return "unsigned char";
-  else if constexpr (std::same_as<T, short>)
+  } else if constexpr (std::same_as<T, short>) {
     return "short";
-  else if constexpr (std::same_as<T, unsigned short>)
+  } else if constexpr (std::same_as<T, unsigned short>) {
     return "unsigned short";
-  else if constexpr (std::same_as<T, int>)
+  } else if constexpr (std::same_as<T, int>) {
     return "int";
-  else if constexpr (std::same_as<T, unsigned int>)
+  } else if constexpr (std::same_as<T, unsigned int>) {
     return "unsigned int";
-  else if constexpr (std::same_as<T, long>)
+  } else if constexpr (std::same_as<T, long>) {
     return "long";
-  else if constexpr (std::same_as<T, unsigned long>)
+  } else if constexpr (std::same_as<T, unsigned long>) {
     return "unsigned long";
-  else if constexpr (std::same_as<T, long long>)
+  } else if constexpr (std::same_as<T, long long>) {
     return "long long";
-  else if constexpr (std::same_as<T, unsigned long long>)
+  } else if constexpr (std::same_as<T, unsigned long long>) {
     return "unsigned long long";
-  else if constexpr (std::same_as<T, float>)
+  } else if constexpr (std::same_as<T, float>) {
     return "float";
-  else if constexpr (std::same_as<T, double>)
+  } else if constexpr (std::same_as<T, double>) {
     return "double";
-  else if constexpr (std::same_as<T, long double>)
+  } else if constexpr (std::same_as<T, long double>) {
     return "long double";
-  else if constexpr (std::same_as<T, char8_t>)
+  } else if constexpr (std::same_as<T, char8_t>) {
     return "char8_t";
-  else if constexpr (std::same_as<T, char16_t>)
+  } else if constexpr (std::same_as<T, char16_t>) {
     return "char16_t";
-  else if constexpr (std::same_as<T, char32_t>)
+  } else if constexpr (std::same_as<T, char32_t>) {
     return "char32_t";
-  else if constexpr (std::same_as<T, wchar_t>)
+  } else if constexpr (std::same_as<T, wchar_t>) {
     return "wchar_t";
-  else if constexpr (std::same_as<T, std::nullptr_t>)
+  } else if constexpr (std::same_as<T, std::nullptr_t>) {
     return "std::nullptr_t";
-  else if constexpr (std::same_as<T, std::string>)
+  } else if constexpr (std::same_as<T, std::string>) {
     return "std::string";
-  else if constexpr (std::same_as<T, std::string_view>)
+  } else if constexpr (std::same_as<T, std::string_view>) {
     return "std::string_view";
-  else
+  } else {
     return "";
+  }
 }
 
 template <typename T, T ValueParam>
-constexpr std::string_view DefaultNameOfValue() noexcept {
+[[nodiscard]] constexpr std::string_view DefaultNameOfValue() noexcept {
   if constexpr (std::integral<T> && !std::same_as<T, char> && !std::same_as<T, bool>) {
     return GetIntegerString<static_cast<std::int64_t>(ValueParam)>();
   }
@@ -317,25 +324,29 @@ constexpr std::string_view DefaultNameOfValue() noexcept {
   return "unknown_value";
 }
 
-template <typename T, T ValueParam>
-constexpr auto TryNameOfValueImpl(int) noexcept
-    -> decltype(name_of_impl(Identity<T>{}, std::integral_constant<T, ValueParam>{})) {
-  return name_of_impl(Identity<T>{}, std::integral_constant<T, ValueParam>{});
-}
+template <typename T, T ValueParam, typename = void>
+struct TryNameOfValueImpl {
+  [[nodiscard]] static constexpr std::string_view Apply() noexcept { return DefaultNameOfValue<T, ValueParam>(); }
+};
 
 template <typename T, T ValueParam>
-constexpr std::string_view TryNameOfValueImpl(...) noexcept {
-  return DefaultNameOfValue<T, ValueParam>();
-}
+struct TryNameOfValueImpl<T, ValueParam,
+                          std::void_t<decltype(name_of_impl(Identity<T>{}, std::integral_constant<T, ValueParam>{}))>> {
+  [[nodiscard]] static constexpr std::string_view Apply() noexcept {
+    return name_of_impl(Identity<T>{}, std::integral_constant<T, ValueParam>{});
+  }
+};
 
 template <typename T, T ValueParam>
 struct ValueNameOfImpl {
-  static constexpr std::string_view Apply() noexcept { return TryNameOfValueImpl<T, ValueParam>(0); }
+  [[nodiscard]] static constexpr std::string_view Apply() noexcept {
+    return TryNameOfValueImpl<T, ValueParam>::Apply();
+  }
 };
 
 // Extract type name from pretty function signature
 template <typename T>
-constexpr std::string_view ExtractTypeNameFromSignature() noexcept {
+[[nodiscard]] constexpr std::string_view ExtractTypeNameFromSignature() noexcept {
   constexpr auto signature = PrettyFunction::Type<T>();
 
   // Check for builtin types first (includes std::string and std::string_view)
@@ -359,25 +370,29 @@ constexpr std::string_view ExtractTypeNameFromSignature() noexcept {
   return signature;
 }
 
-// Forward declaration for ADL lookup
-template <typename T>
-constexpr auto TryNameOfImpl(int) noexcept -> decltype(name_of_impl(Identity<T>{})) {
-  return name_of_impl(Identity<T>{});
-}
+// Forward declaration for ADL lookup using struct-based SFINAE
+template <typename T, typename = void>
+struct TryNameOfImpl {
+  [[nodiscard]] static constexpr std::string_view Apply() noexcept {
+    return ExtractTypeNameFromSignature<T>();
+  }
+};
 
 template <typename T>
-constexpr std::string_view TryNameOfImpl(...) noexcept {
-  return ExtractTypeNameFromSignature<T>();
-}
+struct TryNameOfImpl<T, std::void_t<decltype(name_of_impl(Identity<T>{}))>> {
+  [[nodiscard]] static constexpr std::string_view Apply() noexcept {
+    return name_of_impl(Identity<T>{});
+  }
+};
 
 // Main name implementation
 template <typename T>
 struct NameOfImpl {
-  static constexpr std::string_view Apply() noexcept {
+  [[nodiscard]] static constexpr std::string_view Apply() noexcept {
     if constexpr (requires { T::ctti_name_of(); }) {
       return T::ctti_name_of();
     } else {
-      return TryNameOfImpl<T>(0);
+      return TryNameOfImpl<T>::Apply();
     }
   }
 };
@@ -396,55 +411,63 @@ public:
   constexpr QualifiedName& operator=(const QualifiedName&) noexcept = default;
   constexpr QualifiedName& operator=(QualifiedName&&) noexcept = default;
 
-  constexpr std::string_view GetName() const noexcept {
+  [[nodiscard]] constexpr std::string_view GetName() const noexcept {
     const auto last_colon_pos = full_name_.rfind("::");
     return last_colon_pos == std::string_view::npos ? full_name_ : full_name_.substr(last_colon_pos + 2);
   }
 
-  constexpr std::string_view GetQualifier(std::size_t index) const noexcept {
-    if (index == 0) {
-      const auto first_separator = full_name_.find("::");
-      return first_separator != std::string_view::npos ? full_name_.substr(0, first_separator) : std::string_view{};
-    }
-
-    const auto pos_prev = FindIth(full_name_, "::", index - 1);
-    if (pos_prev == std::string_view::npos) return {};
-
-    const auto pos_curr = full_name_.find("::", pos_prev + 2);
-    if (pos_curr == std::string_view::npos) return {};
-
-    return full_name_.substr(pos_prev + 2, pos_curr - pos_prev - 2);
-  }
-
-  constexpr std::string_view GetFullName() const noexcept { return full_name_; }
+  [[nodiscard]] constexpr std::string_view GetQualifier(std::size_t index) const noexcept;
+  [[nodiscard]] constexpr std::string_view GetFullName() const noexcept { return full_name_; }
 
   constexpr bool operator==(const QualifiedName& other) const noexcept { return full_name_ == other.full_name_; }
 
 private:
-  static constexpr std::size_t FindIth(std::string_view name, std::string_view substring, std::size_t index) noexcept {
-    if (substring.empty()) {
-      return index <= name.size() ? index : std::string_view::npos;
-    }
-
-    std::size_t pos = 0;
-    std::size_t found = 0;
-
-    while (pos < name.size()) {
-      const auto next_pos = name.find(substring, pos);
-      if (next_pos == std::string_view::npos) {
-        return std::string_view::npos;
-      }
-
-      if (found == index) return next_pos;
-
-      ++found;
-      pos = next_pos + substring.size();
-    }
-
-    return std::string_view::npos;
-  }
+  [[nodiscard]] static constexpr std::size_t FindIth(std::string_view name, std::string_view substring,
+                                                     std::size_t index) noexcept;
 
   std::string_view full_name_;
 };
+
+constexpr std::string_view QualifiedName::GetQualifier(std::size_t index) const noexcept {
+  if (index == 0) {
+    const auto first_separator = full_name_.find("::");
+    return first_separator != std::string_view::npos ? full_name_.substr(0, first_separator) : std::string_view{};
+  }
+
+  const auto pos_prev = FindIth(full_name_, "::", index - 1);
+  if (pos_prev == std::string_view::npos)
+    return {};
+
+  const auto pos_curr = full_name_.find("::", pos_prev + 2);
+  if (pos_curr == std::string_view::npos)
+    return {};
+
+  return full_name_.substr(pos_prev + 2, pos_curr - pos_prev - 2);
+}
+
+constexpr std::size_t QualifiedName::FindIth(std::string_view name, std::string_view substring,
+                                             std::size_t index) noexcept {
+  if (substring.empty()) {
+    return index <= name.size() ? index : std::string_view::npos;
+  }
+
+  std::size_t pos = 0;
+  std::size_t found = 0;
+
+  while (pos < name.size()) {
+    const auto next_pos = name.find(substring, pos);
+    if (next_pos == std::string_view::npos) {
+      return std::string_view::npos;
+    }
+
+    if (found == index)
+      return next_pos;
+
+    ++found;
+    pos = next_pos + substring.size();
+  }
+
+  return std::string_view::npos;
+}
 
 }  // namespace ctti::detail

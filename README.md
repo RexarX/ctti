@@ -1,6 +1,6 @@
 <a name="readme-top"></a>
 
-A modern C++23 header-only library for compile-time type information and reflection.
+A modern C++20 header-only library for compile-time type information and reflection.
 
 <details>
 <summary><strong>📋 Table of Contents</strong></summary>
@@ -38,7 +38,7 @@ A modern C++23 header-only library for compile-time type information and reflect
 
 ## Features
 
-- **Pure C++23**: Uses concepts, constexpr everywhere, and latest language features
+- **Pure C++20**: Uses concepts, constexpr everywhere, and latest language features
 - **Compile-time only**: All operations happen at compile time with zero runtime overhead
 - **Clean API**: Simple, intuitive interface following modern C++ conventions
 - **Type safe**: Leverages C++23 type system and concepts for maximum safety
@@ -488,13 +488,13 @@ target_link_libraries(your_target PRIVATE ctti::ctti)
 
 ## Requirements
 
-- C++23 compatible compiler (GCC 12+, Clang 15+, MSVC 19.35+)
-- Standard library with C++23 features
+- C++20 compatible compiler (GCC ~10+, Clang ~10+, MSVC ~19.30+)
+- Standard library with C++20 features
 
 ## Design Principles
 
 1. **Compile-time everything**: All operations must work at compile time
-2. **Modern C++23**: Uses latest language features for better safety and performance
+2. **Modern C++20**: Uses latest language features for better safety and performance
 3. **Clean interface**: snake_case for user functions
 4. **Minimal macros**: Eliminated in favor of template parameters and concepts
 5. **Type safety**: Leverages concepts and strong typing throughout
@@ -502,7 +502,7 @@ target_link_libraries(your_target PRIVATE ctti::ctti)
 
 ## Concepts and Type Safety
 
-The library uses C++23 concepts extensively for type safety:
+The library uses C++20 concepts extensively for type safety:
 
 ```cpp
 // Type concepts
@@ -554,11 +554,11 @@ See `examples/main.cpp` for comprehensive usage examples including:
 
 ## Compiler Support
 
-- **GCC 13+**: Full support
-- **Clang 16+**: Full support
-- **MSVC 19.35+**: Full support
+- **GCC 10+**: Full support
+- **Clang 10+**: Full support
+- **MSVC 19.30+**: Full support
 
-All major compilers with C++23 support are compatible.
+All major compilers with C++20 support are compatible.
 
 ## Thread Safety
 

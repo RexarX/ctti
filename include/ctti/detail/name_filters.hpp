@@ -5,7 +5,7 @@
 
 namespace ctti::detail {
 
-constexpr std::string_view TrimWhitespace(std::string_view str) noexcept {
+[[nodiscard]] constexpr std::string_view TrimWhitespace(std::string_view str) noexcept {
   while (!str.empty() && str.front() == ' ') {
     str = str.substr(1);
   }
@@ -15,7 +15,7 @@ constexpr std::string_view TrimWhitespace(std::string_view str) noexcept {
   return str;
 }
 
-constexpr std::string_view FilterPrefix(std::string_view str, std::string_view prefix) noexcept {
+[[nodiscard]] constexpr std::string_view FilterPrefix(std::string_view str, std::string_view prefix) noexcept {
   str = TrimWhitespace(str);
   if (str.size() >= prefix.size() && str.starts_with(prefix)) {
     const auto remaining = str.substr(prefix.size());
@@ -24,20 +24,20 @@ constexpr std::string_view FilterPrefix(std::string_view str, std::string_view p
   return str;
 }
 
-constexpr std::string_view FilterClass(std::string_view type_name) noexcept {
+[[nodiscard]] constexpr std::string_view FilterClass(std::string_view type_name) noexcept {
   return FilterPrefix(type_name, "class");
 }
 
-constexpr std::string_view FilterStruct(std::string_view type_name) noexcept {
+[[nodiscard]] constexpr std::string_view FilterStruct(std::string_view type_name) noexcept {
   return FilterPrefix(type_name, "struct");
 }
 
-constexpr std::string_view FilterTypenamePrefix(std::string_view type_name) noexcept {
+[[nodiscard]] constexpr std::string_view FilterTypenamePrefix(std::string_view type_name) noexcept {
   auto result = FilterStruct(FilterClass(type_name));
   return TrimWhitespace(result);
 }
 
-constexpr std::size_t FindIth(std::string_view name, std::string_view substring, std::size_t index) {
+[[nodiscard]] constexpr std::size_t FindIth(std::string_view name, std::string_view substring, std::size_t index) {
   std::size_t pos = 0;
   std::size_t found = 0;
 
@@ -47,7 +47,9 @@ constexpr std::size_t FindIth(std::string_view name, std::string_view substring,
       return std::string_view::npos;
     }
 
-    if (found == index) return next_pos;
+    if (found == index) {
+      return next_pos;
+    }
 
     ++found;
     pos = next_pos + substring.size();
@@ -56,7 +58,7 @@ constexpr std::size_t FindIth(std::string_view name, std::string_view substring,
   return std::string_view::npos;
 }
 
-constexpr std::string_view FilterEnumValue(std::string_view name) noexcept {
+[[nodiscard]] constexpr std::string_view FilterEnumValue(std::string_view name) noexcept {
   const auto open_paren = name.find('(');
   if (open_paren == std::string_view::npos) {
     return name;

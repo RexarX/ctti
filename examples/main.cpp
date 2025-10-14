@@ -209,8 +209,8 @@ void demonstrate_mapping() {
 
   auto custom_mapping = ctti::make_mapping<price_src_symbol, active_dst_symbol>(
       [](const Source& source, auto src_sym, Sink& sink, auto dst_sym) {
-        auto price_member = src_sym.get_member<Source>();
-        auto active_member = dst_sym.get_member<Sink>();
+        auto price_member = src_sym.template get_member<Source>();
+        auto active_member = dst_sym.template get_member<Sink>();
         sink.*active_member = source.*price_member > 50.0;
       });
 

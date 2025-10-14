@@ -26,23 +26,23 @@ public:
   using DefinitionAt = std::tuple_element_t<I, std::tuple<Definitions...>>;
 
   template <CompileTimeString Name>
-  static consteval auto GetSymbol() noexcept {
+  [[nodiscard]] static consteval auto GetSymbol() noexcept {
     return GetSymbolByName<Name, Definitions...>();
   }
 
   template <typename F>
     requires(std::invocable<const F&, decltype(Definitions::MakeSymbol())> && ...)
-  static constexpr void ForEachSymbol(const F& func) noexcept(
+  [[nodiscard]] static constexpr void ForEachSymbol(const F& func) noexcept(
       (std::is_nothrow_invocable_v<const F&, decltype(Definitions::MakeSymbol())> && ...)) {
     (func(Definitions::MakeSymbol()), ...);
   }
 
   template <CompileTimeString Name>
-  static constexpr bool HasSymbol() noexcept {
+  [[nodiscard]] static constexpr bool HasSymbol() noexcept {
     return HasSymbolByName<Name, Definitions...>();
   }
 
-  static constexpr std::array<std::string_view, kSize> GetSymbolNames() noexcept {
+  [[nodiscard]] static constexpr auto GetSymbolNames() noexcept -> std::array<std::string_view, kSize> {
     if constexpr (kSize > 0) {
       return {Definitions::kName...};
     } else {
@@ -52,7 +52,7 @@ public:
 
 private:
   template <CompileTimeString Name, typename First, typename... Rest>
-  static consteval auto GetSymbolByName() noexcept {
+  [[nodiscard]] static consteval auto GetSymbolByName() noexcept {
     if constexpr (Name.View() == First::kName) {
       return std::optional{First::MakeSymbol()};
     } else if constexpr (sizeof...(Rest) > 0) {
@@ -63,12 +63,12 @@ private:
   }
 
   template <CompileTimeString Name>
-  static consteval auto GetSymbolByName() noexcept {
+  [[nodiscard]] static consteval auto GetSymbolByName() noexcept -> std::optional<std::nullptr_t> {
     return std::optional<std::nullptr_t>{};
   }
 
   template <CompileTimeString Name, typename First, typename... Rest>
-  static constexpr bool HasSymbolByName() noexcept {
+  [[nodiscard]] static constexpr bool HasSymbolByName() noexcept {
     if constexpr (Name.View() == First::kName) {
       return true;
     } else if constexpr (sizeof...(Rest) > 0) {
@@ -127,7 +127,7 @@ struct GetFirstMemberPtr<OverloadedSymbolDefinition<Name, AttributeList, FirstPt
 
 // Validate all definitions belong to the same class
 template <typename ExpectedClass, typename Definition>
-constexpr bool ValidateDefinitionClass() {
+[[nodiscard]] constexpr bool ValidateDefinitionClass() {
   using ActualClass = typename GetFirstMemberPtr<Definition>::ClassType;
   return std::same_as<ExpectedClass, ActualClass>;
 }

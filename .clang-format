@@ -8,7 +8,7 @@ IndentAccessModifiers: false
 AccessModifierOffset: -2
 
 AllowShortFunctionsOnASingleLine: Inline
-AllowShortIfStatementsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 
 DerivePointerAlignment: false

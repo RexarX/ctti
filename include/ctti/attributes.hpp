@@ -1,40 +1,66 @@
 #pragma once
 
 #include <ctti/detail/attributes_impl.hpp>
+#include <ctti/detail/compile_time_string.hpp>
+#include <ctti/detail/meta.hpp>
 
+#include <concepts>
 #include <cstddef>
 #include <string_view>
 
 namespace ctti {
 
+/**
+ * @brief Represents an attribute with a specific value.
+ * @tparam Value The value of the attribute, which can be of any type.
+ */
 template <auto Value>
 struct attribute_value {
   using value_type = decltype(Value);
   static constexpr value_type value = Value;
 
-  friend constexpr bool operator==([[maybe_unused]] const attribute_value& val, const value_type& other) noexcept {
+  friend constexpr bool operator==(const attribute_value& /*value*/, const value_type& other) noexcept {
     return value == other;
   }
 
-  friend constexpr bool operator==(const value_type& other, [[maybe_unused]] const attribute_value& val) noexcept {
+  friend constexpr bool operator==(const value_type& other, const attribute_value& /*value*/) noexcept {
     return value == other;
   }
 
-  constexpr value_type get() const noexcept { return value; }
-  constexpr operator value_type() const noexcept { return get(); }
+  /**
+   * @brief Retrieves the value of the attribute.
+   * @return The value of the attribute.
+   */
+  [[nodiscard]] constexpr value_type get() const noexcept { return value; }
+  [[nodiscard]] constexpr explicit operator value_type() const noexcept { return get(); }
 };
 
+/**
+ * @brief Represents a tag attribute, which is identified by its type.
+ * @tparam Tag The type used to identify the tag attribute.
+ */
 template <typename Tag>
 struct tag_attribute {
   using tag_type = Tag;
   static constexpr std::string_view name = "tag_attribute";
 };
 
+/**
+ * @brief Represents a named attribute, identified by a compile-time string.
+ * @tparam StringHolder A type that holds a static constexpr std::string_view named 'value'.
+ */
 template <typename StringHolder>
+  requires(requires {
+    { StringHolder::value } -> std::convertible_to<std::string_view>;
+  })
 struct named_attribute {
   static constexpr std::string_view name = StringHolder::value;
 };
 
+/**
+ * @brief A list of attributes, which can include tag attributes, named attributes, and attribute values.
+ * @tparam Attributes A variadic list of attribute types.
+ */
 template <typename... Attributes>
   requires(detail::AttributeType<Attributes> && ...)
 class attribute_list {
@@ -50,26 +76,51 @@ public:
     requires(I < size)
   using at = typename internal_list::template At<I>;
 
+  /**
+   * @brief Checks if the attribute list contains an attribute of type T.
+   * @tparam T The type of the attribute to check for.
+   * @return true if the attribute list contains an attribute of type T, false otherwise.
+   */
   template <typename T>
-  static constexpr bool has() noexcept {
+  [[nodiscard]] static constexpr bool has() noexcept {
     return internal_list::template Has<T>();
   }
 
+  /**
+   * @brief Checks if the attribute list contains an attribute with the specified value.
+   * @tparam Value The value of the attribute to check for.
+   * @return true if the attribute list contains an attribute with the specified value, false otherwise
+   */
   template <auto Value>
-  static constexpr bool has_value() noexcept {
+  [[nodiscard]] static constexpr bool has_value() noexcept {
     return internal_list::template HasValue<Value>();
   }
 
+  /**
+   * @brief Checks if the attribute list contains a tag attribute of the specified type.
+   * @tparam Tag The type of the tag attribute to check for.
+   * @return true if the attribute list contains a tag attribute of the specified type, false otherwise.
+   */
   template <typename Tag>
-  static constexpr bool has_tag() noexcept {
+  [[nodiscard]] static constexpr bool has_tag() noexcept {
     return internal_list::template HasTag<Tag>();
   }
 
+  /**
+   * @brief Checks if the attribute list contains a named attribute of the specified type.
+   * @tparam NamedAttr The type of the named attribute to check for.
+   * @return true if the attribute list contains a named attribute of the specified type, false otherwise.
+   */
   template <typename NamedAttr>
-  static constexpr bool has_named() noexcept {
+  [[nodiscard]] static constexpr bool has_named() noexcept {
     return detail::Contains<NamedAttr, attributes_type>::value;
   }
 
+  /**
+   * @brief Applies a given function to each attribute in the attribute list.
+   * @tparam F The type of the function to apply. It must be invocable with each attribute type.
+   * @param func The function to apply to each attribute.
+   */
   template <typename F>
     requires(std::invocable<const F&, detail::Identity<Attributes>> && ...)
   static constexpr void for_each(const F& func) noexcept(noexcept(internal_list::ForEach(std::declval<const F&>()))) {

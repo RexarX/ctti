@@ -2,10 +2,10 @@
 
 #include <ctti/detail/meta.hpp>
 #include <ctti/detail/name_impl.hpp>
-#include <ctti/type_tag.hpp>
 
 #include <concepts>
 #include <cstddef>
+#include <string_view>
 #include <type_traits>
 
 namespace ctti::detail {
@@ -38,8 +38,8 @@ struct InheritanceInfo {
   static constexpr bool kIsPublicDerived = PubliclyDerivedFrom<Derived, Base>;
   static constexpr bool kIsVirtualBase = false;
 
-  static constexpr std::string_view DerivedName() noexcept { return NameOfImpl<Derived>::Apply(); }
-  static constexpr std::string_view BaseName() noexcept { return NameOfImpl<Base>::Apply(); }
+  [[nodiscard]] static constexpr std::string_view DerivedName() noexcept { return NameOfImpl<Derived>::Apply(); }
+  [[nodiscard]] static constexpr std::string_view BaseName() noexcept { return NameOfImpl<Base>::Apply(); }
 };
 
 template <typename T, typename... Bases>
@@ -62,7 +62,7 @@ struct BaseList {
   }
 
   template <typename Base>
-  static constexpr bool HasBase() noexcept {
+  [[nodiscard]] static constexpr bool HasBase() noexcept {
     return Contains<Base, bases>::value;
   }
 };
@@ -80,51 +80,50 @@ struct PolymorphismInfo {
 };
 
 template <typename Derived, typename Base>
-constexpr bool IsDerivedFrom() noexcept {
+[[nodiscard]] constexpr bool IsDerivedFrom() noexcept {
   return DerivedFrom<Derived, Base>;
 }
 
 template <typename Derived, typename Base>
-constexpr bool IsPubliclyDerivedFrom() noexcept {
+[[nodiscard]] constexpr bool IsPubliclyDerivedFrom() noexcept {
   return PubliclyDerivedFrom<Derived, Base>;
 }
 
 template <typename T>
-constexpr bool IsPolymorphic() noexcept {
+[[nodiscard]] constexpr bool IsPolymorphic() noexcept {
   return Polymorphic<T>;
 }
 
 template <typename T>
-constexpr bool IsAbstract() noexcept {
+[[nodiscard]] constexpr bool IsAbstract() noexcept {
   return Abstract<T>;
 }
 
 template <typename T>
-constexpr bool IsFinal() noexcept {
+[[nodiscard]] constexpr bool IsFinal() noexcept {
   return Final<T>;
 }
 
 template <typename To, typename From>
   requires PubliclyDerivedFrom<From, To> || PubliclyDerivedFrom<To, From>
-constexpr To* SafeCast(From* ptr) noexcept {
+[[nodiscard]] constexpr To* SafeCast(From* ptr) noexcept {
   return static_cast<To*>(ptr);
 }
 
 template <typename To, typename From>
   requires PubliclyDerivedFrom<From, To> || PubliclyDerivedFrom<To, From>
-constexpr const To* SafeCast(const From* ptr) noexcept {
+[[nodiscard]] constexpr const To* SafeCast(const From* ptr) noexcept {
   return static_cast<const To*>(ptr);
 }
 
-template <typename To, typename From>
-  requires Polymorphic<From>
-To* DynamicCastSafe(From* ptr) noexcept {
+template <typename To, Polymorphic From>
+
+[[nodiscard]] To* DynamicCastSafe(From* ptr) noexcept {
   return dynamic_cast<To*>(ptr);
 }
 
-template <typename To, typename From>
-  requires Polymorphic<From>
-const To* DynamicCastSafe(const From* ptr) noexcept {
+template <typename To, Polymorphic From>
+[[nodiscard]] const To* DynamicCastSafe(const From* ptr) noexcept {
   return dynamic_cast<const To*>(ptr);
 }
 

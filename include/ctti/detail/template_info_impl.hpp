@@ -16,12 +16,12 @@
 
 namespace ctti::detail {
 
-constexpr bool LooksLikeTemplate(std::string_view name) noexcept {
+[[nodiscard]] constexpr bool LooksLikeTemplate(std::string_view name) noexcept {
   return name.find('<') != std::string_view::npos && name.find('>') != std::string_view::npos;
 }
 
 template <typename T>
-constexpr bool IsBasicTemplateInstantiation() noexcept {
+[[nodiscard]] constexpr bool IsBasicTemplateInstantiation() noexcept {
   constexpr auto name = NameOfImpl<T>::Apply();
   return LooksLikeTemplate(name) && !std::is_fundamental_v<T>;
 }
@@ -35,7 +35,7 @@ struct TemplateInfo {
   static constexpr std::size_t kTypeParameterCount = 0;
   static constexpr std::size_t kValueParameterCount = 0;
 
-  static constexpr std::string_view GetName() noexcept { return NameOfImpl<T>::Apply(); }
+  [[nodiscard]] static constexpr std::string_view GetName() noexcept { return NameOfImpl<T>::Apply(); }
 };
 
 template <>
@@ -47,7 +47,7 @@ struct TemplateInfo<std::string> {
   static constexpr std::size_t kTypeParameterCount = 0;
   static constexpr std::size_t kValueParameterCount = 0;
 
-  static constexpr std::string_view GetName() noexcept { return "std::string"; }
+  [[nodiscard]] static constexpr std::string_view GetName() noexcept { return "std::string"; }
 };
 
 template <>
@@ -59,7 +59,7 @@ struct TemplateInfo<std::string_view> {
   static constexpr std::size_t kTypeParameterCount = 0;
   static constexpr std::size_t kValueParameterCount = 0;
 
-  static constexpr std::string_view GetName() noexcept { return "std::string_view"; }
+  [[nodiscard]] static constexpr std::string_view GetName() noexcept { return "std::string_view"; }
 };
 
 template <typename T, typename Alloc>
@@ -82,11 +82,13 @@ struct TemplateInfo<std::vector<T, Alloc>> {
     requires(I < kTypeParameterCount)
   using TypeParameter = T;
 
-  static constexpr std::string_view GetName() noexcept { return NameOfImpl<std::vector<T, Alloc>>::Apply(); }
+  [[nodiscard]] static constexpr std::string_view GetName() noexcept {
+    return NameOfImpl<std::vector<T, Alloc>>::Apply();
+  }
 
   template <std::size_t I>
     requires(I < kTypeParameterCount)
-  static constexpr auto GetTypeParameterTag() noexcept {
+  [[nodiscard]] static constexpr auto GetTypeParameterTag() noexcept -> ctti::type_tag<T> {
     return ctti::type_tag<T>{};
   }
 
@@ -104,11 +106,12 @@ struct TemplateInfo<std::vector<T, Alloc>> {
     ForEachTypeParameter(func);
   }
 
-  static constexpr std::array<std::string_view, kTypeParameterCount> GetTypeParameterNames() noexcept {
+  [[nodiscard]] static constexpr auto GetTypeParameterNames() noexcept
+      -> std::array<std::string_view, kTypeParameterCount> {
     return {NameOfImpl<T>::Apply()};
   }
 
-  static constexpr std::array<std::string_view, kParameterCount> GetParameterNames() noexcept {
+  [[nodiscard]] static constexpr auto GetParameterNames() noexcept -> std::array<std::string_view, kParameterCount> {
     return GetTypeParameterNames();
   }
 };
@@ -133,11 +136,13 @@ struct TemplateInfo<std::unique_ptr<T, Deleter>> {
     requires(I < kTypeParameterCount)
   using TypeParameter = T;
 
-  static constexpr std::string_view GetName() noexcept { return NameOfImpl<std::unique_ptr<T, Deleter>>::Apply(); }
+  [[nodiscard]] static constexpr std::string_view GetName() noexcept {
+    return NameOfImpl<std::unique_ptr<T, Deleter>>::Apply();
+  }
 
   template <std::size_t I>
     requires(I < kTypeParameterCount)
-  static constexpr auto GetTypeParameterTag() noexcept {
+  [[nodiscard]] static constexpr auto GetTypeParameterTag() noexcept -> ctti::type_tag<T> {
     return ctti::type_tag<T>{};
   }
 
@@ -155,11 +160,12 @@ struct TemplateInfo<std::unique_ptr<T, Deleter>> {
     ForEachTypeParameter(func);
   }
 
-  static constexpr std::array<std::string_view, kTypeParameterCount> GetTypeParameterNames() noexcept {
+  [[nodiscard]] static constexpr auto GetTypeParameterNames() noexcept
+      -> std::array<std::string_view, kTypeParameterCount> {
     return {NameOfImpl<T>::Apply()};
   }
 
-  static constexpr std::array<std::string_view, kParameterCount> GetParameterNames() noexcept {
+  [[nodiscard]] static constexpr auto GetParameterNames() noexcept -> std::array<std::string_view, kParameterCount> {
     return GetTypeParameterNames();
   }
 };
@@ -184,11 +190,11 @@ struct TemplateInfo<std::shared_ptr<T>> {
     requires(I < kTypeParameterCount)
   using TypeParameter = T;
 
-  static constexpr std::string_view GetName() noexcept { return NameOfImpl<std::shared_ptr<T>>::Apply(); }
+  [[nodiscard]] static constexpr std::string_view GetName() noexcept { return NameOfImpl<std::shared_ptr<T>>::Apply(); }
 
   template <std::size_t I>
     requires(I < kTypeParameterCount)
-  static constexpr auto GetTypeParameterTag() noexcept {
+  [[nodiscard]] static constexpr auto GetTypeParameterTag() noexcept -> ctti::type_tag<T> {
     return ctti::type_tag<T>{};
   }
 
@@ -206,11 +212,12 @@ struct TemplateInfo<std::shared_ptr<T>> {
     ForEachTypeParameter(func);
   }
 
-  static constexpr std::array<std::string_view, kTypeParameterCount> GetTypeParameterNames() noexcept {
+  [[nodiscard]] static constexpr auto GetTypeParameterNames() noexcept
+      -> std::array<std::string_view, kTypeParameterCount> {
     return {NameOfImpl<T>::Apply()};
   }
 
-  static constexpr std::array<std::string_view, kParameterCount> GetParameterNames() noexcept {
+  [[nodiscard]] static constexpr auto GetParameterNames() noexcept -> std::array<std::string_view, kParameterCount> {
     return GetTypeParameterNames();
   }
 };
@@ -237,11 +244,11 @@ struct TemplateInfo<Template<Arg>> {
     requires(I < kTypeParameterCount)
   using TypeParameter = Arg;
 
-  static constexpr std::string_view GetName() noexcept { return NameOfImpl<Template<Arg>>::Apply(); }
+  [[nodiscard]] static constexpr std::string_view GetName() noexcept { return NameOfImpl<Template<Arg>>::Apply(); }
 
   template <std::size_t I>
     requires(I < kTypeParameterCount)
-  static constexpr auto GetTypeParameterTag() noexcept {
+  [[nodiscard]] static constexpr auto GetTypeParameterTag() noexcept -> ctti::type_tag<TypeParameter<I>> {
     return ctti::type_tag<TypeParameter<I>>{};
   }
 
@@ -259,11 +266,12 @@ struct TemplateInfo<Template<Arg>> {
     ForEachTypeParameter(func);
   }
 
-  static constexpr std::array<std::string_view, kTypeParameterCount> GetTypeParameterNames() noexcept {
+  [[nodiscard]] static constexpr auto GetTypeParameterNames() noexcept
+      -> std::array<std::string_view, kTypeParameterCount> {
     return {NameOfImpl<Arg>::Apply()};
   }
 
-  static constexpr std::array<std::string_view, kParameterCount> GetParameterNames() noexcept {
+  [[nodiscard]] static constexpr auto GetParameterNames() noexcept -> std::array<std::string_view, kParameterCount> {
     return GetTypeParameterNames();
   }
 };
@@ -289,11 +297,11 @@ struct TemplateInfo<Template<T, U>> {
     requires(I < kTypeParameterCount)
   using TypeParameter = std::conditional_t<I == 0, T, U>;
 
-  static constexpr std::string_view GetName() noexcept { return NameOfImpl<Template<T, U>>::Apply(); }
+  [[nodiscard]] static constexpr std::string_view GetName() noexcept { return NameOfImpl<Template<T, U>>::Apply(); }
 
   template <std::size_t I>
     requires(I < kTypeParameterCount)
-  static constexpr auto GetTypeParameterTag() noexcept {
+  [[nodiscard]] static constexpr auto GetTypeParameterTag() noexcept {
     if constexpr (I == 0) {
       return ctti::type_tag<T>{};
     } else {
@@ -318,11 +326,12 @@ struct TemplateInfo<Template<T, U>> {
     ForEachTypeParameter(func);
   }
 
-  static constexpr std::array<std::string_view, kTypeParameterCount> GetTypeParameterNames() noexcept {
+  [[nodiscard]] static constexpr auto GetTypeParameterNames() noexcept
+      -> std::array<std::string_view, kTypeParameterCount> {
     return {NameOfImpl<T>::Apply(), NameOfImpl<U>::Apply()};
   }
 
-  static constexpr std::array<std::string_view, kParameterCount> GetParameterNames() noexcept {
+  [[nodiscard]] static constexpr auto GetParameterNames() noexcept -> std::array<std::string_view, kParameterCount> {
     return GetTypeParameterNames();
   }
 };
@@ -340,7 +349,7 @@ struct TemplateInfo<Template<T, Value>> {
 
   template <std::size_t I>
     requires(I < kParameterCount)
-  static constexpr auto GetParameter() noexcept {
+  [[nodiscard]] static constexpr auto GetParameter() noexcept {
     if constexpr (I == 0) {
       return ctti::type_tag<T>{};
     } else {
@@ -348,7 +357,7 @@ struct TemplateInfo<Template<T, Value>> {
     }
   }
 
-  static constexpr std::string_view GetName() noexcept { return NameOfImpl<Template<T, Value>>::Apply(); }
+  [[nodiscard]] static constexpr std::string_view GetName() noexcept { return NameOfImpl<Template<T, Value>>::Apply(); }
 };
 
 template <template <auto> class Template, auto Value>
@@ -363,11 +372,11 @@ struct TemplateInfo<Template<Value>> {
   static constexpr std::size_t kTypeParameterCount = 0;
   static constexpr std::size_t kValueParameterCount = 1;
 
-  static constexpr std::string_view GetName() noexcept { return NameOfImpl<Template<Value>>::Apply(); }
+  [[nodiscard]] static constexpr std::string_view GetName() noexcept { return NameOfImpl<Template<Value>>::Apply(); }
 
   template <std::size_t I>
     requires(I < kValueParameterCount)
-  static constexpr auto GetValueParameter() noexcept {
+  [[nodiscard]] static constexpr auto GetValueParameter() noexcept {
     static_assert(I == 0);
     return Value;
   }
