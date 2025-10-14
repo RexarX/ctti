@@ -41,7 +41,7 @@ A modern C++20 header-only library for compile-time type information and reflect
 - **Pure C++20**: Uses concepts, constexpr everywhere, and latest language features
 - **Compile-time only**: All operations happen at compile time with zero runtime overhead
 - **Clean API**: Simple, intuitive interface following modern C++ conventions
-- **Type safe**: Leverages C++23 type system and concepts for maximum safety
+- **Type safe**: Leverages C++20 type system and concepts for maximum safety
 - **Header-only**: No compilation required, just include and use
 - **Zero dependencies**: Uses only standard library
 
