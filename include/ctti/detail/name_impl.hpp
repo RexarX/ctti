@@ -91,7 +91,7 @@ constexpr std::size_t IntToStringHelper<N>::CalculateDigits() noexcept {
 }
 
 template <std::int64_t N>
-constexpr auto IntToStringHelper<N>::Generate() noexcept -> std::array<char, IntToStringHelper<N>::kDigits + 1> {
+constexpr auto IntToStringHelper<N>::Generate() noexcept -> std::array<char, kDigits + 1> {
   std::array<char, kDigits + 1> result = {};
 
   if constexpr (N == 0) {
