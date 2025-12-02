@@ -2,9 +2,11 @@
 
 #include <ctti/detail/pretty_function.hpp>
 
-#include <iostream>
 #include <string>
+#include <string_view>
 #include <vector>
+
+namespace {
 
 enum class TestEnum { A, B };
 
@@ -16,22 +18,24 @@ class TestClass {};
 
 }  // namespace test_ns
 
+}  // namespace
+
 TEST_SUITE("detail::pretty_function") {
   TEST_CASE("type_function_basic") {
     auto int_name = ctti::detail::pretty_function::Type<int>();
     auto double_name = ctti::detail::pretty_function::Type<double>();
     auto string_name = ctti::detail::pretty_function::Type<std::string>();
 
-    CHECK(!int_name.empty());
-    CHECK(!double_name.empty());
-    CHECK(!string_name.empty());
+    CHECK_FALSE(int_name.empty());
+    CHECK_FALSE(double_name.empty());
+    CHECK_FALSE(string_name.empty());
 
-    CHECK(int_name != double_name);
-    CHECK(double_name != string_name);
-    CHECK(int_name != string_name);
+    CHECK_NE(int_name, double_name);
+    CHECK_NE(double_name, string_name);
+    CHECK_NE(int_name, string_name);
 
-    CHECK(int_name.find("int") != std::string_view::npos);
-    CHECK(double_name.find("double") != std::string_view::npos);
+    CHECK_NE(int_name.find("int"), std::string_view::npos);
+    CHECK_NE(double_name.find("double"), std::string_view::npos);
   }
 
   TEST_CASE("type_function_custom_types") {
@@ -39,13 +43,13 @@ TEST_SUITE("detail::pretty_function") {
     auto class_name = ctti::detail::pretty_function::Type<test_ns::TestClass>();
     auto enum_name = ctti::detail::pretty_function::Type<TestEnum>();
 
-    CHECK(!struct_name.empty());
-    CHECK(!class_name.empty());
-    CHECK(!enum_name.empty());
+    CHECK_FALSE(struct_name.empty());
+    CHECK_FALSE(class_name.empty());
+    CHECK_FALSE(enum_name.empty());
 
-    CHECK(struct_name.find("TestStruct") != std::string_view::npos);
-    CHECK(class_name.find("TestClass") != std::string_view::npos);
-    CHECK(enum_name.find("TestEnum") != std::string_view::npos);
+    CHECK_NE(struct_name.find("TestStruct"), std::string_view::npos);
+    CHECK_NE(class_name.find("TestClass"), std::string_view::npos);
+    CHECK_NE(enum_name.find("TestEnum"), std::string_view::npos);
   }
 
   TEST_CASE("value_function_basic") {
@@ -55,9 +59,9 @@ TEST_SUITE("detail::pretty_function") {
     auto int_value_name = ctti::detail::pretty_function::Value<int, test_value>();
     auto char_value_name = ctti::detail::pretty_function::Value<char, test_char>();
 
-    CHECK(!int_value_name.empty());
-    CHECK(!char_value_name.empty());
-    CHECK(int_value_name != char_value_name);
+    CHECK_FALSE(int_value_name.empty());
+    CHECK_FALSE(char_value_name.empty());
+    CHECK_NE(int_value_name, char_value_name);
 
     // Should contain the value somewhere in the string
     bool found_value =
@@ -72,12 +76,12 @@ TEST_SUITE("detail::pretty_function") {
   TEST_CASE("value_function_enum") {
     auto enum_value_name = ctti::detail::pretty_function::Value<TestEnum, TestEnum::A>();
 
-    CHECK(!enum_value_name.empty());
+    CHECK_FALSE(enum_value_name.empty());
     // Different compilers format enum values differently
     bool found_a = enum_value_name.find("A") != std::string_view::npos;
     bool found_value = enum_value_name.find("TestEnum") != std::string_view::npos;
-    bool found_zero = enum_value_name.find("0") != std::string_view::npos; // TestEnum::A is 0
-    CHECK((found_a || found_value || found_zero)); // Accept any reasonable representation
+    bool found_zero = enum_value_name.find("0") != std::string_view::npos;  // TestEnum::A is 0
+    CHECK((found_a || found_value || found_zero));                          // Accept any reasonable representation
   }
 
   TEST_CASE("constexpr_evaluation") {
@@ -87,16 +91,16 @@ TEST_SUITE("detail::pretty_function") {
     static_assert(!type_name.empty());
     static_assert(!value_name.empty());
 
-    CHECK(!type_name.empty());
-    CHECK(!value_name.empty());
+    CHECK_FALSE(type_name.empty());
+    CHECK_FALSE(value_name.empty());
   }
 
   TEST_CASE("different_compilers_produce_output") {
     // This test mainly ensures that the pretty function macros are properly defined and produce non-empty output
     auto name = ctti::detail::pretty_function::Type<double>();
 
-    CHECK(name.size() > 0);
-    CHECK(name.data() != nullptr);
+    CHECK_GT(name.size(), 0);
+    CHECK_NE(name.data(), nullptr);
 
     // The actual format will vary between compilers, but should contain the type
     // In some form (with or without prefixes like "class", "struct", etc.)
@@ -108,10 +112,10 @@ TEST_SUITE("detail::pretty_function") {
     auto vector_name = ctti::detail::pretty_function::Type<std::vector<int>>();
     auto string_name = ctti::detail::pretty_function::Type<std::basic_string<char>>();
 
-    CHECK(!vector_name.empty());
-    CHECK(!string_name.empty());
+    CHECK_FALSE(vector_name.empty());
+    CHECK_FALSE(string_name.empty());
 
-    CHECK(vector_name.find("vector") != std::string_view::npos);
+    CHECK_NE(vector_name.find("vector"), std::string_view::npos);
 
     // Split the complex condition into separate checks
     bool has_string = string_name.find("string") != std::string_view::npos;
@@ -124,13 +128,13 @@ TEST_SUITE("detail::pretty_function") {
     auto ref_name = ctti::detail::pretty_function::Type<int&>();
     auto const_ptr_name = ctti::detail::pretty_function::Type<const int*>();
 
-    CHECK(!ptr_name.empty());
-    CHECK(!ref_name.empty());
-    CHECK(!const_ptr_name.empty());
+    CHECK_FALSE(ptr_name.empty());
+    CHECK_FALSE(ref_name.empty());
+    CHECK_FALSE(const_ptr_name.empty());
 
-    CHECK(ptr_name != ref_name);
-    CHECK(ptr_name != const_ptr_name);
-    CHECK(ref_name != const_ptr_name);
+    CHECK_NE(ptr_name, ref_name);
+    CHECK_NE(ptr_name, const_ptr_name);
+    CHECK_NE(ref_name, const_ptr_name);
   }
 
   TEST_CASE("cv_qualified_types") {
@@ -139,14 +143,14 @@ TEST_SUITE("detail::pretty_function") {
     auto const_volatile_name = ctti::detail::pretty_function::Type<const volatile int>();
     auto plain_name = ctti::detail::pretty_function::Type<int>();
 
-    CHECK(!const_name.empty());
-    CHECK(!volatile_name.empty());
-    CHECK(!const_volatile_name.empty());
+    CHECK_FALSE(const_name.empty());
+    CHECK_FALSE(volatile_name.empty());
+    CHECK_FALSE(const_volatile_name.empty());
 
     // All should be different (though some compilers might normalize them)
-    CHECK(const_name != plain_name);
-    CHECK(volatile_name != plain_name);
-    CHECK(const_volatile_name != plain_name);
+    CHECK_NE(const_name, plain_name);
+    CHECK_NE(volatile_name, plain_name);
+    CHECK_NE(const_volatile_name, plain_name);
   }
 
   TEST_CASE("function_signature_contains_expected_parts") {
@@ -154,10 +158,10 @@ TEST_SUITE("detail::pretty_function") {
     auto value_sig = ctti::detail::pretty_function::Value<int, 42>();
 
     // Should contain function name
-    CHECK(type_sig.find("Type") != std::string_view::npos);
-    CHECK(value_sig.find("Value") != std::string_view::npos);
+    CHECK_NE(type_sig.find("Type"), std::string_view::npos);
+    CHECK_NE(value_sig.find("Value"), std::string_view::npos);
 
     // Should be different signatures
-    CHECK(type_sig != value_sig);
+    CHECK_NE(type_sig, value_sig);
   }
 }

@@ -250,22 +250,76 @@ auto shared = info.make_shared(42, "test");  // Create shared_ptr
 
 ### Enum Utilities
 
+Unlike magic_enum which auto-discovers enum values using compiler introspection, ctti requires
+you to explicitly register enum values. This is a design tradeoff - it's simpler and more
+portable, but requires manual maintenance.
+
+#### Registered Enums (Recommended)
+
+Register enum values once using `ctti::enum_values<E>` specialization, then use convenient
+free functions for runtime operations:
+
 ```cpp
 enum class Color { Red, Green, Blue };
 
-auto info = ctti::get_enum_info<Color>();
-info.is_scoped()                     // true for scoped enums
-info.name_of_value<Color::Red>()     // "Red"
-info.underlying_value<Color::Red>()  // Underlying value
+// Register enum values (do this once, typically near the enum definition)
+template <>
+struct ctti::enum_values<Color> {
+  static constexpr auto values = ctti::make_enum_list<Color::Red, Color::Green, Color::Blue>();
+};
 
-auto list = ctti::make_enum_list<Color::Red, Color::Green>();
-list.contains<Color::Red>()  // true
-list.count                   // 2
+// Now use convenient free functions anywhere
+auto name = ctti::enum_name(Color::Red);           // std::optional<string_view>("Red")
+auto val = ctti::enum_cast<Color>("Green");        // std::optional<Color>(Color::Green)
+bool valid = ctti::enum_contains(Color::Blue);     // true
+auto idx = ctti::enum_index(Color::Red);           // std::optional<size_t>(0)
+auto from_int = ctti::enum_from_underlying<Color>(1);  // std::optional<Color>(Color::Green)
 
-// Iterate over enum values
-list.for_each([](auto index, Color value) {
-  std::print("Enum value: {}\n", ctti::enum_name<Color, value>());
+// Access all values and names
+constexpr auto count = ctti::enum_count<Color>();  // 3
+const auto& entries = ctti::enum_entries<Color>(); // std::array<Color, 3>
+const auto& names = ctti::enum_names<Color>();     // std::array<std::string_view, 3>
+
+// Iterate over all registered values
+ctti::enum_for_each<Color>([](auto index, Color value) {
+  auto name = ctti::enum_name(value);
+  std::print("[{}] {}\n", index.value, name.value_or("unknown"));
 });
+
+// Check if an enum is registered
+static_assert(ctti::registered_enum<Color>);  // true
+```
+
+#### Manual Enum Value List
+
+For enums that don't need global registration, create local lists:
+
+```cpp
+enum Status { Active, Inactive, Pending };
+
+// Create a local enum value list
+auto list = ctti::make_enum_list<Active, Inactive, Pending>();
+list.count                   // 3
+list.contains<Active>()      // true (compile-time)
+list.contains(Active)        // true (runtime)
+list.name_of(Active)         // std::optional<string_view>("Active")
+list.cast("Inactive")        // std::optional<Status>(Inactive)
+```
+
+#### Compile-Time Only Operations
+
+These work without registration for any enum:
+
+```cpp
+ctti::enum_name<Color, Color::Red>()              // "Red"
+ctti::enum_type_name<Color>()                     // "Color"
+ctti::enum_underlying_value<Color, Color::Red>()  // 0
+ctti::enum_underlying(Color::Green)               // 1 (runtime, no validation)
+
+auto info = ctti::get_enum_info<Color>();
+info.is_scoped()                     // true for enum class
+info.name_of_value<Color::Red>()     // "Red"
+info.underlying_value<Color::Red>()  // 0
 ```
 
 ### Template Info
@@ -510,6 +564,7 @@ ctti::reflectable<T>             // Type has reflection info
 ctti::template_instantiation<T>  // Type is template instantiation
 ctti::scoped_enum<T>             // Type is scoped enum
 ctti::unscoped_enum<T>           // Type is unscoped enum
+ctti::registered_enum<T>         // Enum has enum_values<T> specialization
 ctti::polymorphic<T>             // Type is polymorphic
 ctti::abstract<T>                // Type is abstract
 ctti::final_type<T>              // Type is final

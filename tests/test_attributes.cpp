@@ -2,17 +2,16 @@
 
 #include <ctti/attributes.hpp>
 
-#include <iostream>
-#include <string>
+#include <concepts>
 
 TEST_SUITE("attributes") {
   TEST_CASE("attribute_value") {
     constexpr auto attr = ctti::attribute_value<42>{};
 
-    CHECK(attr.get() == 42);
-    CHECK(static_cast<int>(attr) == 42);
-    CHECK(attr == 42);
-    CHECK(42 == attr);
+    CHECK_EQ(attr.get(), 42);
+    CHECK_EQ(static_cast<int>(attr), 42);
+    CHECK_EQ(attr, 42);
+    CHECK_EQ(42, attr);
   }
 
   TEST_CASE("tag_attributes") {
@@ -33,23 +32,23 @@ TEST_SUITE("attributes") {
     using since_v1 = ctti::since<1>;
     using since_v2 = ctti::since<2>;
 
-    CHECK(since_v1::value == 1);
-    CHECK(since_v2::value == 2);
+    CHECK_EQ(since_v1::value, 1);
+    CHECK_EQ(since_v2::value, 2);
   }
 
   TEST_CASE("named_attributes") {
-    CHECK(ctti::description::name == "description");
+    CHECK_EQ(ctti::description::name, "description");
   }
 
   TEST_CASE("description_with_value") {
     using desc_with_val = ctti::description_with_value<"custom description">;
-    CHECK(desc_with_val::name == "custom description");
+    CHECK_EQ(desc_with_val::name, "custom description");
   }
 
   TEST_CASE("attribute_list") {
     using attr_list = ctti::attribute_list<ctti::read_only, ctti::since<1>, ctti::description>;
 
-    CHECK(attr_list::size == 3);
+    CHECK_EQ(attr_list::size, 3);
     CHECK(attr_list::has<ctti::read_only>());
     CHECK(attr_list::has_value<1>());
     CHECK(attr_list::has_tag<ctti::read_only_tag>());
@@ -64,6 +63,6 @@ TEST_SUITE("attributes") {
 
     int count = 0;
     attr_list::for_each([&count](auto identity) { ++count; });
-    CHECK(count == 2);
+    CHECK_EQ(count, 2);
   }
 }

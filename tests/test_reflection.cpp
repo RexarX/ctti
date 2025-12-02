@@ -4,8 +4,9 @@
 #include <ctti/reflection.hpp>
 #include <ctti/symbol.hpp>
 
-#include <iostream>
 #include <string>
+
+namespace {
 
 struct ReflectedStruct {
   int value = 42;
@@ -15,6 +16,13 @@ struct ReflectedStruct {
   void set_value(int v) { value = v; }
   int get_value() const { return value; }
 };
+
+struct NonReflectedStruct {
+  int x = 0;
+  int y = 0;
+};
+
+}  // namespace
 
 template <>
 struct ctti::meta<ReflectedStruct> {
@@ -26,11 +34,6 @@ struct ctti::meta<ReflectedStruct> {
       ctti::member<"get_value", &ReflectedStruct::get_value>());
 };
 
-struct NonReflectedStruct {
-  int x = 0;
-  int y = 0;
-};
-
 TEST_SUITE("reflection") {
   TEST_CASE("reflectable_concept") {
     CHECK(ctti::reflectable<ReflectedStruct>);
@@ -39,22 +42,25 @@ TEST_SUITE("reflection") {
 
   TEST_CASE("get_reflection") {
     constexpr auto reflection = ctti::get_reflection<ReflectedStruct>();
-    CHECK(reflection.size == 5);
+    CHECK_EQ(reflection.size, 5);
   }
 
   TEST_CASE("symbol_count") {
-    CHECK(ctti::symbol_count<ReflectedStruct>() == 5);
+    CHECK_EQ(ctti::symbol_count<ReflectedStruct>(), 5);
   }
 
   TEST_CASE("get_symbol_names") {
     auto names = ctti::get_symbol_names<ReflectedStruct>();
-    CHECK(names.size() == 5);
+    CHECK_EQ(names.size(), 5);
 
     bool found_value = false;
     bool found_name = false;
     for (const auto& name : names) {
-      if (name == "value") found_value = true;
-      if (name == "name") found_name = true;
+      if (name == "value") {
+        found_value = true;
+      } else if (name == "name") {
+        found_name = true;
+      }
     }
     CHECK(found_value);
     CHECK(found_name);
@@ -69,7 +75,7 @@ TEST_SUITE("reflection") {
 
   TEST_CASE("get_symbol") {
     constexpr auto value_symbol = ctti::get_symbol<ReflectedStruct, "value">();
-    CHECK(value_symbol.name == "value");
+    CHECK_EQ(value_symbol.name, "value");
     CHECK(value_symbol.is_owner_of<ReflectedStruct>());
   }
 
@@ -77,17 +83,17 @@ TEST_SUITE("reflection") {
     int count = 0;
     ctti::for_each_symbol<ReflectedStruct>([&count](auto symbol) {
       ++count;
-      CHECK(!symbol.name.empty());
+      CHECK_FALSE(symbol.name.empty());
     });
-    CHECK(count == 5);
+    CHECK_EQ(count, 5);
   }
 
   TEST_CASE("member_definition") {
     constexpr auto value_def = ctti::member<"value", &ReflectedStruct::value>();
     constexpr auto attributed_def = ctti::member<"name", &ReflectedStruct::name>(ctti::deprecated{});
 
-    CHECK(value_def.name == "value");
-    CHECK(attributed_def.name == "name");
+    CHECK_EQ(value_def.name, "value");
+    CHECK_EQ(attributed_def.name, "name");
   }
 
   TEST_CASE("overloaded_member_definition") {
@@ -102,14 +108,14 @@ TEST_SUITE("reflection") {
                                 static_cast<void (TestStruct::*)(int)>(&TestStruct::func),
                                 static_cast<void (TestStruct::*)(double)>(&TestStruct::func)>();
 
-    CHECK(overloaded_def.name == "func");
+    CHECK_EQ(overloaded_def.name, "func");
   }
 
   TEST_CASE("attributed_member") {
     using since_attr = ctti::since<1>;
     constexpr auto attributed_def = ctti::member<"value", &ReflectedStruct::value>(since_attr{}, ctti::description{});
 
-    CHECK(attributed_def.name == "value");
+    CHECK_EQ(attributed_def.name, "value");
   }
 
   TEST_CASE("reflection_meta_information") {
@@ -132,7 +138,7 @@ TEST_SUITE("reflection") {
     auto value_member = value_symbol.get_member<ReflectedStruct>();
     auto name_member = name_symbol.get_member<ReflectedStruct>();
 
-    CHECK(obj.*value_member == 123);
-    CHECK(obj.*name_member == "reflected");
+    CHECK_EQ(obj.*value_member, 123);
+    CHECK_EQ(obj.*name_member, "reflected");
   }
 }

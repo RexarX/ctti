@@ -1,19 +1,49 @@
-
 #pragma once
 
 #include <cstddef>
 #include <cstdint>
-#include <expected>
 #include <string_view>
 
 namespace ctti::detail {
 
 enum class ParseError : std::uint8_t { kInvalidFormat, kMissingDelimiter, kEmptyInput };
 
+// Simple expected-like wrapper for C++20 compatibility
+template <typename T>
+class ParseResult {
+public:
+  constexpr ParseResult() noexcept : value_() {}
+  constexpr ParseResult(T val) noexcept : value_(val) {}
+  constexpr ParseResult(ParseError err) noexcept : error_(err) {}
+
+  [[nodiscard]] constexpr bool has_value() const noexcept { return has_value_; }
+
+  [[nodiscard]] constexpr T value() const noexcept { return value_; }
+  [[nodiscard]] constexpr T operator*() const noexcept { return value_; }
+
+  [[nodiscard]] constexpr ParseError error() const noexcept { return error_; }
+
+private:
+  union {
+    T value_;
+    ParseError error_;
+  };
+  bool has_value_ = false;
+};
+
 class NameParser {
 public:
   [[nodiscard]] static constexpr auto FilterPrefix(std::string_view str, std::string_view prefix) noexcept
-      -> std::expected<std::string_view, ParseError>;
+      -> ParseResult<std::string_view> {
+    if (str.empty()) {
+      return ParseError::kEmptyInput;
+    }
+
+    if (str.size() >= prefix.size() && str.starts_with(prefix)) {
+      return str.substr(prefix.size());
+    }
+    return str;
+  }
 
   [[nodiscard]] static constexpr std::string_view LeftPad(std::string_view str) noexcept {
     while (!str.empty() && str.front() == ' ') {
@@ -41,18 +71,6 @@ public:
 
   [[nodiscard]] static constexpr std::string_view FilterEnumValue(std::string_view name) noexcept;
 };
-
-constexpr auto NameParser::FilterPrefix(std::string_view str, std::string_view prefix) noexcept
-    -> std::expected<std::string_view, ParseError> {
-  if (str.empty()) {
-    return std::unexpected(ParseError::kEmptyInput);
-  }
-
-  if (str.size() >= prefix.size() && str.starts_with(prefix)) {
-    return str.substr(prefix.size());
-  }
-  return str;
-}
 
 constexpr std::size_t NameParser::FindIth(std::string_view name, std::string_view substring,
                                           std::size_t index) noexcept {

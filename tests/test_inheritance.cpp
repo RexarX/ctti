@@ -2,7 +2,7 @@
 
 #include <ctti/inheritance.hpp>
 
-#include <iostream>
+namespace {
 
 struct Base {
   virtual ~Base() = default;
@@ -35,6 +35,8 @@ struct ConcreteImpl : public AbstractBase {
 };
 
 struct FinalClass final {};
+
+}  // namespace
 
 TEST_SUITE("inheritance") {
   TEST_CASE("inheritance_concepts") {
@@ -71,17 +73,14 @@ TEST_SUITE("inheritance") {
     CHECK(std::same_as<decltype(info)::derived_type, Derived>);
     CHECK(std::same_as<decltype(info)::base_type, Base>);
 
-    auto derived_name = info.derived_name();
-    auto base_name = info.base_name();
-
-    CHECK(derived_name.find("Derived") != std::string_view::npos);
-    CHECK(base_name.find("Base") != std::string_view::npos);
+    CHECK_EQ(info.derived_name(), "Derived");
+    CHECK_EQ(info.base_name(), "Base");
   }
 
   TEST_CASE("base_list") {
     using bases = ctti::base_list<MultipleDerived, MultipleBase1, MultipleBase2>;
 
-    CHECK(bases::count == 2);
+    CHECK_EQ(bases::count, 2);
     CHECK(std::same_as<bases::base<0>, MultipleBase1>);
     CHECK(std::same_as<bases::base<1>, MultipleBase2>);
 
@@ -91,7 +90,7 @@ TEST_SUITE("inheritance") {
 
     int count = 0;
     bases::for_each_base([&count](auto identity) { ++count; });
-    CHECK(count == 2);
+    CHECK_EQ(count, 2);
   }
 
   TEST_CASE("polymorphism_info") {
@@ -131,13 +130,13 @@ TEST_SUITE("inheritance") {
     Base* base_ptr = &derived;
 
     auto* derived_ptr = ctti::safe_cast<Derived>(base_ptr);
-    CHECK(derived_ptr == &derived);
+    CHECK_EQ(derived_ptr, &derived);
 
     const Derived const_derived;
     const Base* const_base_ptr = &const_derived;
 
     auto* const_derived_ptr = ctti::safe_cast<const Derived>(const_base_ptr);
-    CHECK(const_derived_ptr == &const_derived);
+    CHECK_EQ(const_derived_ptr, &const_derived);
   }
 
   TEST_CASE("dynamic_casting") {
@@ -145,9 +144,9 @@ TEST_SUITE("inheritance") {
     Base* base_ptr = &derived;
 
     auto* dynamic_derived = ctti::dynamic_cast_safe<Derived>(base_ptr);
-    CHECK(dynamic_derived == &derived);
+    CHECK_EQ(dynamic_derived, &derived);
 
     auto* invalid_cast = ctti::dynamic_cast_safe<MultipleDerived>(base_ptr);
-    CHECK(invalid_cast == nullptr);
+    CHECK_EQ(invalid_cast, nullptr);
   }
 }

@@ -2,9 +2,10 @@
 
 #include <ctti/constructor.hpp>
 
-#include <iostream>
-#include <memory>
+#include <concepts>
 #include <string>
+
+namespace {
 
 struct DefaultConstructible {
   DefaultConstructible() = default;
@@ -38,6 +39,8 @@ struct NonAggregateType {
 private:
   std::string c;
 };
+
+}  // namespace
 
 TEST_SUITE("constructor") {
   TEST_CASE("constructor_concepts") {
@@ -88,21 +91,21 @@ TEST_SUITE("constructor") {
     auto obj1 = info.construct();
     auto obj2 = info.construct(1, 2.5, std::string("test"));
 
-    CHECK(obj2.a == 1);
-    CHECK(obj2.b == 2.5);
-    CHECK(obj2.c == "test");
+    CHECK_EQ(obj2.a, 1);
+    CHECK_EQ(obj2.b, doctest::Approx(2.5));
+    CHECK_EQ(obj2.c, "test");
 
     auto ptr1 = info.make_unique(3, 4.5, std::string("unique"));
     auto ptr2 = info.make_shared(5, 6.5, std::string("shared"));
 
-    CHECK(ptr1->a == 3);
-    CHECK(ptr2->a == 5);
+    CHECK_EQ(ptr1->a, 3);
+    CHECK_EQ(ptr2->a, 5);
   }
 
   TEST_CASE("constructor_signature") {
     using sig = ctti::constructor_signature<AggregateType, int, double, std::string>;
 
-    CHECK(sig::arity == 3);
+    CHECK_EQ(sig::arity, 3);
     CHECK(std::same_as<sig::arg_type<0>, int>);
     CHECK(std::same_as<sig::arg_type<1>, double>);
     CHECK(std::same_as<sig::arg_type<2>, std::string>);

@@ -3,9 +3,10 @@
 #include <ctti/attributes.hpp>
 #include <ctti/symbol.hpp>
 
-#include <iostream>
 #include <string>
 #include <vector>
+
+namespace {
 
 struct SymbolTestStruct {
   int value = 42;
@@ -55,15 +56,17 @@ struct OverloadTestStruct {
   std::string get_status() const { return "readonly"; }
 };
 
+}  // namespace
+
 TEST_SUITE("symbol") {
   TEST_CASE("basic_symbol_creation") {
     constexpr auto value_symbol = ctti::make_simple_symbol<"value", &SymbolTestStruct::value>();
     constexpr auto name_symbol = ctti::make_simple_symbol<"name", &SymbolTestStruct::name>();
 
-    CHECK(value_symbol.name == "value");
-    CHECK(name_symbol.name == "name");
-    CHECK(value_symbol.hash != 0);
-    CHECK(name_symbol.hash != value_symbol.hash);
+    CHECK_EQ(value_symbol.name, "value");
+    CHECK_EQ(name_symbol.name, "name");
+    CHECK_NE(value_symbol.hash, 0);
+    CHECK_NE(name_symbol.hash, value_symbol.hash);
   }
 
   TEST_CASE("symbol_ownership") {
@@ -86,10 +89,10 @@ TEST_SUITE("symbol") {
     constexpr auto value_symbol = ctti::make_simple_symbol<"value", &SymbolTestStruct::value>();
 
     auto member_ptr = value_symbol.get_member<SymbolTestStruct>();
-    CHECK(obj.*member_ptr == 42);
+    CHECK_EQ(obj.*member_ptr, 42);
 
     obj.*member_ptr = 100;
-    CHECK(obj.value == 100);
+    CHECK_EQ(obj.value, 100);
   }
 
   TEST_CASE("symbol_function_calling") {
@@ -101,10 +104,10 @@ TEST_SUITE("symbol") {
     CHECK(get_symbol.has_overload<int() const>());
 
     set_symbol.call(obj, 200);
-    CHECK(obj.value == 200);
+    CHECK_EQ(obj.value, 200);
 
     auto result = get_symbol.call(obj);
-    CHECK(result == 200);
+    CHECK_EQ(result, 200);
   }
 
   TEST_CASE("symbol_overloads") {
@@ -112,7 +115,7 @@ TEST_SUITE("symbol") {
         ctti::make_symbol_with_overloads<"multi", ctti::no_attributes, &SymbolTestStruct::set_value,
                                          &SymbolTestStruct::get_value>();
 
-    CHECK(multi_symbol.overload_count == 2);
+    CHECK_EQ(multi_symbol.overload_count, 2);
     CHECK(multi_symbol.has_overloads);
   }
 
@@ -124,14 +127,14 @@ TEST_SUITE("symbol") {
     auto val = value_symbol.get_value(obj);
     auto nm = name_symbol.get_value(obj);
 
-    CHECK(val == 42);
-    CHECK(nm == "test");
+    CHECK_EQ(val, 42);
+    CHECK_EQ(nm, "test");
 
     value_symbol.set_value(obj, 100);
     name_symbol.set_value(obj, std::string("modified"));
 
-    CHECK(obj.value == 100);
-    CHECK(obj.name == "modified");
+    CHECK_EQ(obj.value, 100);
+    CHECK_EQ(obj.name, "modified");
   }
 
   TEST_CASE("overloaded_method_with_different_parameter_types") {
@@ -142,22 +145,22 @@ TEST_SUITE("symbol") {
         static_cast<void (OverloadTestStruct::*)(double)>(&OverloadTestStruct::process),
         static_cast<void (OverloadTestStruct::*)(const std::string&)>(&OverloadTestStruct::process)>();
 
-    CHECK(process_symbol.overload_count == 3);
+    CHECK_EQ(process_symbol.overload_count, 3);
     CHECK(process_symbol.has_overloads);
 
     CHECK(process_symbol.has_overload<void(int)>());
     process_symbol.call(obj, 42);
-    CHECK(obj.value == 42);
-    CHECK(obj.logs.back() == "process(int)");
+    CHECK_EQ(obj.value, 42);
+    CHECK_EQ(obj.logs.back(), "process(int)");
 
     CHECK(process_symbol.has_overload<void(double)>());
     process_symbol.call(obj, 3.14);
-    CHECK(obj.result == 3.14);
-    CHECK(obj.logs.back() == "process(double)");
+    CHECK_EQ(obj.result, doctest::Approx(3.14));
+    CHECK_EQ(obj.logs.back(), "process(double)");
 
     CHECK(process_symbol.has_overload<void(const std::string&)>());
     process_symbol.call(obj, std::string("test"));
-    CHECK(obj.logs.back() == "process(string): test");
+    CHECK_EQ(obj.logs.back(), "process(string): test");
 
     CHECK_FALSE(process_symbol.has_overload<void(bool)>());
   }
@@ -171,22 +174,22 @@ TEST_SUITE("symbol") {
         static_cast<int (OverloadTestStruct::*)(int)>(&OverloadTestStruct::calculate),
         static_cast<double (OverloadTestStruct::*)(double, double)>(&OverloadTestStruct::calculate)>();
 
-    CHECK(calculate_symbol.overload_count == 3);
+    CHECK_EQ(calculate_symbol.overload_count, 3);
 
     CHECK(calculate_symbol.has_overload<int()>());
     auto result1 = calculate_symbol.call(obj);
-    CHECK(result1 == 10);
-    CHECK(obj.logs.back() == "calculate()");
+    CHECK_EQ(result1, 10);
+    CHECK_EQ(obj.logs.back(), "calculate()");
 
     CHECK(calculate_symbol.has_overload<int(int)>());
     auto result2 = calculate_symbol.call(obj, 5);
-    CHECK(result2 == 15);
-    CHECK(obj.logs.back() == "calculate(int)");
+    CHECK_EQ(result2, 15);
+    CHECK_EQ(obj.logs.back(), "calculate(int)");
 
     CHECK(calculate_symbol.has_overload<double(double, double)>());
     auto result3 = calculate_symbol.call(obj, 2.5, 3.0);
-    CHECK(result3 == 7.5);
-    CHECK(obj.logs.back() == "calculate(double, double)");
+    CHECK_EQ(result3, doctest::Approx(7.5));
+    CHECK_EQ(obj.logs.back(), "calculate(double, double)");
   }
 
   TEST_CASE("const_and_non_const_overloaded_methods") {
@@ -198,16 +201,16 @@ TEST_SUITE("symbol") {
         static_cast<std::string (OverloadTestStruct::*)()>(&OverloadTestStruct::get_status),
         static_cast<std::string (OverloadTestStruct::*)() const>(&OverloadTestStruct::get_status)>();
 
-    CHECK(status_symbol.overload_count == 2);
+    CHECK_EQ(status_symbol.overload_count, 2);
 
     CHECK(status_symbol.has_overload<std::string()>());
     auto result1 = status_symbol.call(obj);
-    CHECK(result1 == "active");
-    CHECK(obj.logs.back() == "get_status()");
+    CHECK_EQ(result1, "active");
+    CHECK_EQ(obj.logs.back(), "get_status()");
 
     CHECK(status_symbol.has_overload<std::string() const>());
     auto result2 = status_symbol.call(const_obj);
-    CHECK(result2 == "readonly");
+    CHECK_EQ(result2, "readonly");
   }
 
   TEST_CASE("overloaded_symbol_with_attributes") {
@@ -217,7 +220,7 @@ TEST_SUITE("symbol") {
                                          static_cast<void (OverloadTestStruct::*)(double)>(
                                              &OverloadTestStruct::process)>();
 
-    CHECK(multi_symbol.name == "process");
+    CHECK_EQ(multi_symbol.name, "process");
     CHECK(multi_symbol.has_tag<ctti::read_only_tag>());
     CHECK(multi_symbol.has_attribute<ctti::deprecated>());
   }
@@ -231,12 +234,12 @@ TEST_SUITE("symbol") {
         "calculate", ctti::no_attributes, static_cast<int (OverloadTestStruct::*)()>(&OverloadTestStruct::calculate),
         static_cast<int (OverloadTestStruct::*)(int)>(&OverloadTestStruct::calculate)>();
 
-    CHECK(process_symbol.hash != calculate_symbol.hash);
+    CHECK_NE(process_symbol.hash, calculate_symbol.hash);
 
     constexpr auto process_symbol2 = ctti::make_symbol_with_overloads<
         "process", ctti::no_attributes, static_cast<void (OverloadTestStruct::*)(int)>(&OverloadTestStruct::process)>();
 
-    CHECK(process_symbol.hash == process_symbol2.hash);
+    CHECK_EQ(process_symbol.hash, process_symbol2.hash);
   }
 
   TEST_CASE("non_overloaded_function_signature_check") {

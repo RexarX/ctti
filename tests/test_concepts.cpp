@@ -5,8 +5,11 @@
 #include <ctti/symbol.hpp>
 #include <ctti/type_tag.hpp>
 
-#include <iostream>
 #include <string>
+#include <string_view>
+#include <type_traits>
+
+namespace {
 
 struct CustomNameType {
   static constexpr std::string_view ctti_name_of() { return "CustomName"; }
@@ -25,6 +28,8 @@ constexpr auto ctti_model(ctti::type_tag<ReflectableTypeWithSymbols>) {
   constexpr auto dummy_symbol = ctti::make_simple_symbol<"dummy", &ReflectableTypeWithSymbols::dummy>();
   return ctti::model<decltype(dummy_symbol)>{};
 }
+
+}  // namespace
 
 TEST_SUITE("concepts") {
   TEST_CASE("has_custom_name_of_concept") {

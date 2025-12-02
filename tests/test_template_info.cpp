@@ -3,9 +3,10 @@
 #include <ctti/template_info.hpp>
 
 #include <array>
-#include <iostream>
-#include <memory>
+#include <concepts>
 #include <vector>
+
+namespace {
 
 template <typename T>
 struct SimpleTemplate {
@@ -28,6 +29,8 @@ struct MixedTemplate {
   std::array<T, Size> data;
 };
 
+}  // namespace
+
 using SimpleInt = SimpleTemplate<int>;
 using PairStringDouble = PairTemplate<std::string, double>;
 using IntArray5 = IntTemplate<5>;
@@ -49,40 +52,37 @@ TEST_SUITE("template_info") {
     auto info = ctti::get_template_info<SimpleInt>();
 
     CHECK(info.is_template_instantiation);
-    CHECK(info.parameter_count == 1);
+    CHECK_EQ(info.parameter_count, 1);
     CHECK(std::same_as<decltype(info)::type, SimpleInt>);
 
-    auto name = info.name();
-    CHECK(name.find("SimpleTemplate") != std::string_view::npos);
+    CHECK_EQ(info.name(), "SimpleTemplate<int>");
   }
 
   TEST_CASE("non_template_info") {
     auto info = ctti::get_template_info<int>();
 
     CHECK_FALSE(info.is_template_instantiation);
-    CHECK(info.parameter_count == 0);
+    CHECK_EQ(info.parameter_count, 0);
     CHECK(std::same_as<decltype(info)::type, int>);
 
-    auto name = info.name();
-    CHECK(name == "int");
+    CHECK_EQ(info.name(), "int");
   }
 
   TEST_CASE("std_template_info") {
     auto vector_info = ctti::get_template_info<std::vector<int>>();
 
     CHECK(vector_info.is_template_instantiation);
-    CHECK(vector_info.parameter_count >= 1);  // Has at least the element type
+    CHECK_GE(vector_info.parameter_count, 1);  // Has at least the element type
 
-    auto name = vector_info.name();
-    CHECK(name.find("vector") != std::string_view::npos);
+    CHECK_EQ(vector_info.name(), "std::vector<int>");
   }
 
   TEST_CASE("utility_functions") {
     CHECK(ctti::is_template_instantiation<SimpleInt>());
     CHECK_FALSE(ctti::is_template_instantiation<int>());
 
-    CHECK(ctti::template_parameter_count<SimpleInt>() == 1);
-    CHECK(ctti::template_parameter_count<int>() == 0);
+    CHECK_EQ(ctti::template_parameter_count<SimpleInt>(), 1);
+    CHECK_EQ(ctti::template_parameter_count<int>(), 0);
   }
 
   TEST_CASE("variadic_type_template_concept") {
@@ -115,7 +115,7 @@ TEST_SUITE("template_info") {
     auto info = ctti::get_template_info<SimpleInt>();
 
     static_assert(info.type_parameter_count == 1);
-    CHECK(info.type_parameter_count == 1);
+    CHECK_EQ(info.type_parameter_count, 1);
 
     if constexpr (ctti::variadic_type_template<SimpleInt>) {
       using param0 = decltype(info)::type_parameter<0>;
@@ -130,24 +130,24 @@ TEST_SUITE("template_info") {
     auto info = ctti::get_template_info<IntArray5>();
 
     static_assert(info.value_parameter_count == 1);
-    CHECK(info.value_parameter_count == 1);
+    CHECK_EQ(info.value_parameter_count, 1);
 
     if constexpr (ctti::variadic_value_template<IntArray5>) {
       auto value = info.value_parameter<0>();
-      CHECK(value == 5);
+      CHECK_EQ(value, 5);
     }
   }
 
   TEST_CASE("mixed_template_parameter_access") {
     auto info = ctti::get_template_info<MixedFloatArray3>();
 
-    CHECK(info.parameter_count == 2);
-    CHECK(info.type_parameter_count == 1);
-    CHECK(info.value_parameter_count == 1);
+    CHECK_EQ(info.parameter_count, 2);
+    CHECK_EQ(info.type_parameter_count, 1);
+    CHECK_EQ(info.value_parameter_count, 1);
 
     if constexpr (ctti::mixed_variadic_template<MixedFloatArray3>) {
       CHECK(std::same_as<decltype(info)::type_parameter, float>);
-      CHECK(info.value_parameter == 3);
+      CHECK_EQ(info.value_parameter, 3);
     }
   }
 
@@ -157,7 +157,7 @@ TEST_SUITE("template_info") {
     if constexpr (ctti::variadic_type_template<SimpleInt>) {
       int count = 0;
       info.for_each_type_parameter([&count](auto tag) { ++count; });
-      CHECK(count == 1);
+      CHECK_EQ(count, 1);
     }
   }
 
@@ -166,28 +166,17 @@ TEST_SUITE("template_info") {
 
     if constexpr (ctti::variadic_type_template<SimpleInt>) {
       auto names = info.type_parameter_names();
-      CHECK(names.size() == 1);
-      CHECK(names[0] == "int");
+      CHECK_EQ(names.size(), 1);
+      CHECK_EQ(names[0], "int");
     }
   }
-
-  // TEST_CASE("unique_ptr_template") {
-  //   auto info = ctti::get_template_info<std::unique_ptr<int>>();
-
-  //   CHECK(info.is_template_instantiation);
-  //   CHECK(info.parameter_count >= 1);
-
-  //   auto name = info.name();
-  //   CHECK(name.find("unique_ptr") != std::string_view::npos);
-  // }
 
   TEST_CASE("shared_ptr_template") {
     auto info = ctti::get_template_info<std::shared_ptr<double>>();
 
     CHECK(info.is_template_instantiation);
-    CHECK(info.parameter_count >= 1);
+    CHECK_GE(info.parameter_count, 1);
 
-    auto name = info.name();
-    CHECK(name.find("shared_ptr") != std::string_view::npos);
+    CHECK_EQ(info.name(), "std::shared_ptr<double>");
   }
 }

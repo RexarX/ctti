@@ -3,14 +3,17 @@
 #include <ctti/symbol.hpp>
 #include <ctti/tie.hpp>
 
-#include <iostream>
 #include <string>
+
+namespace {
 
 struct TieTestStruct {
   int value = 42;
   std::string name = "test";
   double price = 99.99;
 };
+
+}  // namespace
 
 TEST_SUITE("tie") {
   TEST_CASE("basic_tie") {
@@ -27,9 +30,9 @@ TEST_SUITE("tie") {
     auto tied = ctti::tie<value_symbol, name_symbol, price_symbol>(val, nm, pr);
     tied = obj;
 
-    CHECK(val == 42);
-    CHECK(nm == "test");
-    CHECK(pr == 99.99);
+    CHECK_EQ(val, 42);
+    CHECK_EQ(nm, "test");
+    CHECK_EQ(pr, doctest::Approx(99.99));
   }
 
   TEST_CASE("partial_tie") {
@@ -44,8 +47,8 @@ TEST_SUITE("tie") {
     auto tied = ctti::tie<value_symbol, name_symbol>(val, nm);
     tied = obj;
 
-    CHECK(val == 42);
-    CHECK(nm == "test");
+    CHECK_EQ(val, 42);
+    CHECK_EQ(nm, "test");
   }
 
   TEST_CASE("single_member_tie") {
@@ -56,7 +59,7 @@ TEST_SUITE("tie") {
     auto tied = ctti::tie<value_symbol>(val);
     tied = obj;
 
-    CHECK(val == 42);
+    CHECK_EQ(val, 42);
   }
 
   TEST_CASE("tie_with_modified_object") {
@@ -76,8 +79,8 @@ TEST_SUITE("tie") {
     auto tied = ctti::tie<value_symbol, name_symbol, price_symbol>(val, nm, pr);
     tied = obj;
 
-    CHECK(val == 100);
-    CHECK(nm == "modified");
-    CHECK(pr == 123.45);
+    CHECK_EQ(val, 100);
+    CHECK_EQ(nm, "modified");
+    CHECK_EQ(pr, doctest::Approx(123.45));
   }
 }

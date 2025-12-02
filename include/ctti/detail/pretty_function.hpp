@@ -1,8 +1,6 @@
 #pragma once
 
-#include <cstddef>
 #include <string_view>
-#include <utility>
 
 #if defined(__clang__)
 #define CTTI_PRETTY_FUNCTION __PRETTY_FUNCTION__
@@ -11,140 +9,66 @@
 #elif defined(_MSC_VER)
 #define CTTI_PRETTY_FUNCTION __FUNCSIG__
 #else
-#error "No support for this compiler."
+#error "Unsupported compiler"
 #endif
 
 namespace ctti::detail {
 
+/**
+ * @brief Provides access to raw compiler-specific pretty function signatures.
+ *
+ * This struct exposes the raw `__PRETTY_FUNCTION__` (GCC/Clang) or `__FUNCSIG__` (MSVC)
+ * output for a given type or value. The format is compiler-dependent and should only
+ * be used for debugging or low-level introspection.
+ *
+ * @note For extracting clean type/value names, use `ctti::name_of<T>()` instead.
+ */
 struct PrettyFunction {
+  /**
+   * @brief Gets the raw pretty function signature for a type.
+   * @tparam T The type to inspect.
+   * @return The raw compiler-specific signature string.
+   */
   template <typename T>
-  static constexpr std::string_view Type() noexcept {
+  [[nodiscard]] static constexpr std::string_view Type() noexcept {
     return CTTI_PRETTY_FUNCTION;
   }
 
+  /**
+   * @brief Gets the raw pretty function signature for a value.
+   * @tparam T The type of the value.
+   * @tparam ValueParam The compile-time value to inspect.
+   * @return The raw compiler-specific signature string.
+   */
   template <typename T, T ValueParam>
-  static constexpr std::string_view Value() noexcept {
+  [[nodiscard]] static constexpr std::string_view Value() noexcept {
     return CTTI_PRETTY_FUNCTION;
   }
 };
 
 inline namespace pretty_function {
 
-template <typename T>
-[[nodiscard]] constexpr std::string_view type() noexcept {
-  return PrettyFunction::Type<T>();
-}
-
-template <typename T, T ValueParam>
-[[nodiscard]] constexpr std::string_view value() noexcept {
-  return PrettyFunction::Value<T, ValueParam>();
-}
-
+/**
+ * @brief Gets the raw pretty function signature for a type.
+ * @tparam T The type to inspect.
+ * @return The raw compiler-specific signature string.
+ */
 template <typename T>
 [[nodiscard]] constexpr std::string_view Type() noexcept {
   return PrettyFunction::Type<T>();
 }
 
+/**
+ * @brief Gets the raw pretty function signature for a value.
+ * @tparam T The type of the value.
+ * @tparam ValueParam The compile-time value to inspect.
+ * @return The raw compiler-specific signature string.
+ */
 template <typename T, T ValueParam>
 [[nodiscard]] constexpr std::string_view Value() noexcept {
   return PrettyFunction::Value<T, ValueParam>();
 }
 
 }  // namespace pretty_function
-
-[[nodiscard]] constexpr bool IsAlphaNumeric(char ch) noexcept {
-  return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9');
-}
-
-[[nodiscard]] constexpr bool IsValidIdentifierChar(char ch) noexcept {
-  return IsAlphaNumeric(ch) || ch == '_';
-}
-
-[[nodiscard]] constexpr std::string_view FindTypeInSignature(std::string_view signature,
-                                                             std::string_view known_type) noexcept {
-  const auto pos = signature.find(known_type);
-  if (pos == std::string_view::npos) {
-    return {};
-  }
-
-  const bool is_start_valid = (pos == 0) || !IsValidIdentifierChar(signature[pos - 1]);
-  const bool is_end_valid =
-      (pos + known_type.size() >= signature.size()) || !IsValidIdentifierChar(signature[pos + known_type.size()]);
-
-  return (is_start_valid && is_end_valid) ? known_type : std::string_view{};
-}
-
-[[nodiscard]] constexpr auto DetectPrettyFunctionOffsetsForCompiler() noexcept -> std::pair<std::size_t, std::size_t> {
-#if defined(__clang__)
-  constexpr std::string_view test_signature = PrettyFunction::Type<int>();
-
-  constexpr auto eq_pos = test_signature.find(" = ");
-  if (eq_pos != std::string_view::npos) {
-    constexpr auto bracket_pos = test_signature.find(']', eq_pos);
-    if (bracket_pos != std::string_view::npos) {
-      return {eq_pos + 3, test_signature.size() - bracket_pos};
-    }
-  }
-
-  constexpr auto int_pos = test_signature.find("int");
-  if (int_pos != std::string_view::npos) {
-    constexpr bool is_start_valid = (int_pos == 0) || !IsValidIdentifierChar(test_signature[int_pos - 1]);
-    constexpr bool is_end_valid =
-        (int_pos + 3 >= test_signature.size()) || !IsValidIdentifierChar(test_signature[int_pos + 3]);
-    if (is_start_valid && is_end_valid) {
-      return {int_pos, test_signature.size() - int_pos - 3};
-    }
-  }
-
-  return {75, 1};
-
-#elif defined(__GNUC__) && !defined(__clang__)
-  constexpr std::string_view test_signature = PrettyFunction::Type<int>();
-
-  constexpr auto with_pos = test_signature.find("with ");
-  if (with_pos != std::string_view::npos) {
-    constexpr auto eq_pos = test_signature.find(" = ", with_pos);
-    if (eq_pos != std::string_view::npos) {
-      constexpr auto bracket_pos = test_signature.find(']', eq_pos);
-      if (bracket_pos != std::string_view::npos) {
-        return {eq_pos + 3, test_signature.size() - bracket_pos};
-      }
-    }
-  }
-
-  constexpr auto int_pos = test_signature.find("int");
-  if (int_pos != std::string_view::npos) {
-    constexpr bool is_start_valid = (int_pos == 0) || !IsValidIdentifierChar(test_signature[int_pos - 1]);
-    constexpr bool is_end_valid =
-        (int_pos + 3 >= test_signature.size()) || !IsValidIdentifierChar(test_signature[int_pos + 3]);
-    if (is_start_valid && is_end_valid) {
-      return {int_pos, test_signature.size() - int_pos - 3};
-    }
-  }
-
-  return {81, 1};
-
-#elif defined(_MSC_VER) && !defined(__clang__)
-  constexpr std::string_view test_signature = PrettyFunction::Type<int>();
-
-  // MSVC format is typically: "return_type __cdecl function_name<type>(void)"
-  // Look for the last '<' and first '>' to find the type
-  constexpr auto last_angle_start = test_signature.rfind('<');
-  constexpr auto first_angle_end = test_signature.find('>', last_angle_start);
-  if (last_angle_start != std::string_view::npos && first_angle_end != std::string_view::npos) {
-    return {last_angle_start + 1, test_signature.size() - first_angle_end};
-  }
-
-  // Fallback values for MSVC
-  return {84, 7};
-
-#else
-  return {0, 0};
-#endif
-}
-
-constexpr std::pair<std::size_t, std::size_t> kPrettyFunctionOffsets = DetectPrettyFunctionOffsetsForCompiler();
-constexpr std::size_t kTypePrettyFunctionLeft = kPrettyFunctionOffsets.first;
-constexpr std::size_t kTypePrettyFunctionRight = kPrettyFunctionOffsets.second;
 
 }  // namespace ctti::detail

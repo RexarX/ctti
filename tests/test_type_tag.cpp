@@ -2,7 +2,8 @@
 
 #include <ctti/type_tag.hpp>
 
-#include <iostream>
+#include <concepts>
+#include <string>
 
 TEST_SUITE("type_tag") {
   TEST_CASE("basic_functionality") {

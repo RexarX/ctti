@@ -2,7 +2,8 @@
 
 #include <ctti/detail/compile_time_string.hpp>
 
-#include <iostream>
+#include <string>
+#include <string_view>
 
 TEST_SUITE("detail::compile_time_string") {
   TEST_CASE("basic_construction") {
@@ -86,7 +87,7 @@ TEST_SUITE("detail::compile_time_string") {
     static constexpr auto str = ctti::detail::CompileTimeString{"test"};
     static constexpr auto cstr = str.CStr();
 
-    CHECK(std::string_view{cstr} == "test");
+    CHECK_EQ(std::string_view{cstr}, "test");
   }
 
   TEST_CASE("view_conversion") {
@@ -133,7 +134,7 @@ TEST_SUITE("detail::compile_time_string") {
     static constexpr auto str = ctti::detail::CompileTimeString{"runtime_test"};
     std::string runtime_str{str.View()};
 
-    CHECK(runtime_str == "runtime_test");
-    CHECK(runtime_str.size() == str.Size());
+    CHECK_EQ(runtime_str, "runtime_test");
+    CHECK_EQ(runtime_str.size(), str.Size());
   }
 }

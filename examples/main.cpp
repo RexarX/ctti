@@ -1,11 +1,13 @@
 #include <ctti/ctti.hpp>
 
 #include <array>
-#include <memory>
+#include <format>
+#include <iostream>
 #include <optional>
-#include <print>
 #include <string>
 #include <vector>
+
+namespace {
 
 struct Point {
   double x = 0.0;
@@ -18,44 +20,15 @@ struct Point {
   }
 };
 
-template <>
-struct ctti::meta<Point> {
-  using type = Point;
-
-  static constexpr auto reflection = ctti::make_reflection(
-      ctti::member<"x", &Point::x>(), ctti::member<"y", &Point::y>(ctti::read_only{}),
-      ctti::member<"calculate", &Point::calculate>(), ctti::member<"set_coordinates", &Point::set_coordinates>());
-};
-
 struct Calculator {
   int add(int a, int b) { return a + b; }
   double add(double a, double b) { return a + b; }
   std::string add(const std::string& a, const std::string& b) { return a + b; }
 };
 
-template <>
-struct ctti::meta<Calculator> {
-  using type = Calculator;
-
-  static constexpr auto reflection = ctti::make_reflection(
-      ctti::overloaded_member<"add", static_cast<int (Calculator::*)(int, int)>(&Calculator::add),
-                              static_cast<double (Calculator::*)(double, double)>(&Calculator::add),
-                              static_cast<std::string (Calculator::*)(const std::string&, const std::string&)>(
-                                  &Calculator::add)>());
-};
-
 struct Named {
   std::string name;
   int value = 0;
-};
-
-template <>
-struct ctti::meta<Named> {
-  using type = Named;
-
-  static constexpr auto reflection =
-      ctti::make_reflection(ctti::member<"name", &Named::name>(ctti::validated{}),
-                            ctti::member<"value", &Named::value>(ctti::attribute_value<1>{}));
 };
 
 template <typename T>
@@ -94,8 +67,52 @@ struct DefaultedContainer {
 enum class Color { Red, Green, Blue };
 enum Status { Active, Inactive, Pending };
 
+}  // namespace
+
+template <>
+struct ctti::meta<Point> {
+  using type = Point;
+
+  static constexpr auto reflection = ctti::make_reflection(
+      ctti::member<"x", &Point::x>(), ctti::member<"y", &Point::y>(ctti::read_only{}),
+      ctti::member<"calculate", &Point::calculate>(), ctti::member<"set_coordinates", &Point::set_coordinates>());
+};
+
+template <>
+struct ctti::meta<Calculator> {
+  using type = Calculator;
+
+  static constexpr auto reflection = ctti::make_reflection(
+      ctti::overloaded_member<"add", static_cast<int (Calculator::*)(int, int)>(&Calculator::add),
+                              static_cast<double (Calculator::*)(double, double)>(&Calculator::add),
+                              static_cast<std::string (Calculator::*)(const std::string&, const std::string&)>(
+                                  &Calculator::add)>());
+};
+
+template <>
+struct ctti::meta<Named> {
+  using type = Named;
+
+  static constexpr auto reflection =
+      ctti::make_reflection(ctti::member<"name", &Named::name>(ctti::validated{}),
+                            ctti::member<"value", &Named::value>(ctti::attribute_value<1>{}));
+};
+
+// Register Color enum values for convenient runtime operations
+template <>
+struct ctti::enum_values<Color> {
+  static constexpr auto values = ctti::make_enum_list<Color::Red, Color::Green, Color::Blue>();
+};
+
+namespace {
+
+template <typename... Args>
+void Print(std::format_string<Args...> fmt, Args&&... args) {
+  std::cout << std::format(fmt, std::forward<Args>(args)...);
+}
+
 void demonstrate_symbol_access() {
-  std::print("=== Symbol-Based Member Access ===\n");
+  Print("=== Symbol-Based Member Access ===\n");
 
   Point p{3.0, 4.0};
   Named n{"example", 42};
@@ -105,21 +122,21 @@ void demonstrate_symbol_access() {
   constexpr auto calculate_symbol = ctti::get_reflected_symbol<"calculate", Point>();
   const auto calculated = calculate_symbol.call(p);
 
-  std::print("Point x: {}\n", x_val);
-  std::print("Point y: {}\n", y_val);
-  std::print("Point calculated: {}\n", calculated);
+  Print("Point x: {}\n", x_val);
+  Print("Point y: {}\n", y_val);
+  Print("Point calculated: {}\n", calculated);
 
   const auto name_val = ctti::get_symbol_value<"name">(n);
   const auto value_val = ctti::get_symbol_value<"value">(n);
 
-  std::print("Named name: {}\n", name_val);
-  std::print("Named value: {}\n", value_val);
+  Print("Named name: {}\n", name_val);
+  Print("Named value: {}\n", value_val);
 
-  std::print("\n");
+  Print("\n");
 }
 
 void demonstrate_overloads() {
-  std::print("=== Method Overloads ===\n");
+  Print("=== Method Overloads ===\n");
 
   Calculator calc;
 
@@ -129,20 +146,20 @@ void demonstrate_overloads() {
   double result2 = add_symbol.call(calc, 5.5, 3.2);
   std::string result3 = add_symbol.call(calc, std::string("Hello"), std::string(" World"));
 
-  std::print("add(5, 3) = {}\n", result1);
-  std::print("add(5.5, 3.2) = {}\n", result2);
-  std::print("add(\"Hello\", \" World\") = {}\n", result3);
+  Print("add(5, 3) = {}\n", result1);
+  Print("add(5.5, 3.2) = {}\n", result2);
+  Print("add(\"Hello\", \" World\") = {}\n", result3);
 
-  std::print("Can call with int(int, int): {}\n", add_symbol.has_overload<int(int, int)>());
-  std::print("Can call with string(const string&, const string&): {}\n",
-             add_symbol.has_overload<std::string(const std::string&, const std::string&)>());
-  std::print("Can call with double(double, double): {}\n", add_symbol.has_overload<double(double, double)>());
+  Print("Can call with int(int, int): {}\n", add_symbol.has_overload<int(int, int)>());
+  Print("Can call with string(const string&, const string&): {}\n",
+        add_symbol.has_overload<std::string(const std::string&, const std::string&)>());
+  Print("Can call with double(double, double): {}\n", add_symbol.has_overload<double(double, double)>());
 
-  std::print("\n");
+  Print("\n");
 }
 
 void demonstrate_attributes() {
-  std::print("=== Attributes ===\n");
+  Print("=== Attributes ===\n");
 
   constexpr auto y_symbol = ctti::get_reflected_symbol<"y", Point>();
   constexpr auto name_symbol = ctti::get_reflected_symbol<"name", Named>();
@@ -152,30 +169,30 @@ void demonstrate_attributes() {
   constexpr bool name_is_validated = name_symbol.has_attribute<ctti::validated>();
   constexpr bool value_has_version = value_symbol.has_attribute_value<1>();
 
-  std::print("Point.y is read-only: {}\n", y_is_readonly);
-  std::print("Named.name is validated: {}\n", name_is_validated);
-  std::print("Named.value has version 1: {}\n", value_has_version);
+  Print("Point.y is read-only: {}\n", y_is_readonly);
+  Print("Named.name is validated: {}\n", name_is_validated);
+  Print("Named.value has version 1: {}\n", value_has_version);
 
-  std::print("\n");
+  Print("\n");
 }
 
 void demonstrate_reflection_iteration() {
-  std::print("=== Reflection Iteration ===\n");
+  Print("=== Reflection Iteration ===\n");
 
-  std::print("Point symbols:\n");
-  ctti::for_each_symbol<Point>([](auto symbol) { std::print("  - {}\n", symbol.name); });
+  Print("Point symbols:\n");
+  ctti::for_each_symbol<Point>([](auto symbol) { Print("  - {}\n", symbol.name); });
 
-  std::print("Named symbols:\n");
-  ctti::for_each_symbol<Named>([](auto symbol) { std::print("  - {}\n", symbol.name); });
+  Print("Named symbols:\n");
+  ctti::for_each_symbol<Named>([](auto symbol) { Print("  - {}\n", symbol.name); });
 
   constexpr auto point_symbol_names = ctti::get_symbol_names<Point>();
-  std::print("Point has {} symbols\n", point_symbol_names.size());
+  Print("Point has {} symbols\n", point_symbol_names.size());
 
-  std::print("\n");
+  Print("\n");
 }
 
 void demonstrate_mapping() {
-  std::print("=== Object Mapping ===\n");
+  Print("=== Object Mapping ===\n");
 
   struct Source {
     int value = 42;
@@ -202,10 +219,10 @@ void demonstrate_mapping() {
   ctti::map<value_src_symbol, value_dst_symbol>(src, dst);
   ctti::map<name_src_symbol, name_dst_symbol>(src, dst);
 
-  std::print("After direct mapping:\n");
-  std::print("  dst.value: {}\n", dst.value);
-  std::print("  dst.name: {}\n", dst.name);
-  std::print("  dst.active: {}\n", dst.active);
+  Print("After direct mapping:\n");
+  Print("  dst.value: {}\n", dst.value);
+  Print("  dst.name: {}\n", dst.name);
+  Print("  dst.active: {}\n", dst.active);
 
   auto custom_mapping = ctti::make_mapping<price_src_symbol, active_dst_symbol>(
       [](const Source& source, auto src_sym, Sink& sink, auto dst_sym) {
@@ -216,14 +233,14 @@ void demonstrate_mapping() {
 
   custom_mapping(src, dst);
 
-  std::print("After custom mapping:\n");
-  std::print("  dst.active: {} (price {} > 50.0)\n", dst.active, src.price);
+  Print("After custom mapping:\n");
+  Print("  dst.active: {} (price {} > 50.0)\n", dst.active, src.price);
 
-  std::print("\n");
+  Print("\n");
 }
 
 void demonstrate_tie() {
-  std::print("=== Tie Functionality ===\n");
+  Print("=== Tie Functionality ===\n");
 
   struct TieTestStruct {
     int value = 100;
@@ -244,70 +261,70 @@ void demonstrate_tie() {
   auto tied = ctti::tie<value_symbol, name_symbol, weight_symbol>(val, nm, wt);
   tied = obj;
 
-  std::print("Tied values:\n");
-  std::print("  val: {}\n", val);
-  std::print("  nm: {}\n", nm);
-  std::print("  wt: {}\n", wt);
+  Print("Tied values:\n");
+  Print("  val: {}\n", val);
+  Print("  nm: {}\n", nm);
+  Print("  wt: {}\n", wt);
 
-  std::print("\n");
+  Print("\n");
 }
 
 void demonstrate_symbol_utilities() {
-  std::print("=== Symbol Utilities ===\n");
+  Print("=== Symbol Utilities ===\n");
 
   constexpr auto value_symbol = ctti::make_simple_symbol<"value", &Point::x>();
   constexpr auto calc_symbol = ctti::make_simple_symbol<"calculate", &Point::calculate>();
 
-  std::print("Symbol names:\n");
-  std::print("  value_symbol: {}\n", value_symbol.name);
-  std::print("  calc_symbol: {}\n", calc_symbol.name);
+  Print("Symbol names:\n");
+  Print("  value_symbol: {}\n", value_symbol.name);
+  Print("  calc_symbol: {}\n", calc_symbol.name);
 
-  std::print("Symbol hashes:\n");
-  std::print("  value_symbol: {}\n", value_symbol.hash);
-  std::print("  calc_symbol: {}\n", calc_symbol.hash);
+  Print("Symbol hashes:\n");
+  Print("  value_symbol: {}\n", value_symbol.hash);
+  Print("  calc_symbol: {}\n", calc_symbol.hash);
 
-  std::print("Symbol overload counts:\n");
-  std::print("  value_symbol: {}\n", value_symbol.overload_count);
-  std::print("  calc_symbol: {}\n", calc_symbol.overload_count);
+  Print("Symbol overload counts:\n");
+  Print("  value_symbol: {}\n", value_symbol.overload_count);
+  Print("  calc_symbol: {}\n", calc_symbol.overload_count);
 
-  std::print("Symbol ownership:\n");
-  std::print("  value_symbol owns Point: {}\n", value_symbol.is_owner_of<Point>());
-  std::print("  value_symbol owns int: {}\n", value_symbol.is_owner_of<int>());
+  Print("Symbol ownership:\n");
+  Print("  value_symbol owns Point: {}\n", value_symbol.is_owner_of<Point>());
+  Print("  value_symbol owns int: {}\n", value_symbol.is_owner_of<int>());
 
   Point p{5.0, 12.0};
   auto val = value_symbol.get_value(p);
-  std::print("Retrieved value using symbol: {}\n", val);
+  Print("Retrieved value using symbol: {}\n", val);
 
   value_symbol.set_value(p, 7.0);
-  std::print("After setting value to 7.0: {}\n", p.x);
+  Print("After setting value to 7.0: {}\n", p.x);
 
-  std::print("Symbol method overload checking:\n");
-  std::print("  calc_symbol has double() const: {}\n", calc_symbol.has_overload<double() const>());
-  std::print("  calc_symbol has int(): {}\n", calc_symbol.has_overload<int()>());
+  Print("Symbol method overload checking:\n");
+  Print("  calc_symbol has double() const: {}\n", calc_symbol.has_overload<double() const>());
+  Print("  calc_symbol has int(): {}\n", calc_symbol.has_overload<int()>());
 
-  std::print("\n");
+  Print("\n");
 }
 
 void demonstrate_type_names() {
-  std::print("=== Type Names ===\n");
+  Print("=== Type Names ===\n");
 
-  std::print("int: {}\n", ctti::name_of<int>());
-  std::print("Point: {}\n", ctti::name_of<Point>());
-  std::print("Named: {}\n", ctti::name_of<Named>());
-  std::print("Calculator: {}\n", ctti::name_of<Calculator>());
+  Print("int: {}\n", ctti::name_of<int>());
+  Print("Point: {}\n", ctti::name_of<Point>());
+  Print("Named: {}\n", ctti::name_of<Named>());
+  Print("Calculator: {}\n", ctti::name_of<Calculator>());
 
-  std::print("std::vector<int>: {}\n", ctti::name_of<std::vector<int>>());
-  std::print("std::optional<std::string>: {}\n", ctti::name_of<std::optional<std::string>>());
-  std::print("Container<int>: {}\n", ctti::name_of<Container<int>>());
-  std::print("FixedArray<double, 5>: {}\n", ctti::name_of<FixedArray<double, 5>>());
-  std::print("ValueWrapper<42>: {}\n", ctti::name_of<ValueWrapper<42>>());
-  std::print("DefaultedContainer<int, 100>: {}\n", ctti::name_of<DefaultedContainer<int, 100>>());
+  Print("std::vector<int>: {}\n", ctti::name_of<std::vector<int>>());
+  Print("std::optional<std::string>: {}\n", ctti::name_of<std::optional<std::string>>());
+  Print("Container<int>: {}\n", ctti::name_of<Container<int>>());
+  Print("FixedArray<double, 5>: {}\n", ctti::name_of<FixedArray<double, 5>>());
+  Print("ValueWrapper<42>: {}\n", ctti::name_of<ValueWrapper<42>>());
+  Print("DefaultedContainer<int, 100>: {}\n", ctti::name_of<DefaultedContainer<int, 100>>());
 
-  std::print("\n");
+  Print("\n");
 }
 
 void demonstrate_template_info() {
-  std::print("=== Template Information ===\n");
+  Print("=== Template Information ===\n");
 
   using VectorInt = std::vector<int>;
   using ArrayDouble5 = FixedArray<double, 5>;
@@ -320,143 +337,187 @@ void demonstrate_template_info() {
   constexpr bool defaulted_is_template = ctti::is_template_instantiation<DefaultedIntContainer>();
   constexpr bool int_is_template = ctti::is_template_instantiation<int>();
 
-  std::print("std::vector<int> is template: {}\n", vector_is_template);
-  std::print("FixedArray<double, 5> is template: {}\n", array_is_template);
-  std::print("ValueWrapper<42> is template: {}\n", value_is_template);
-  std::print("DefaultedContainer<int, 100> is template: {}\n", defaulted_is_template);
-  std::print("int is template: {}\n", int_is_template);
+  Print("std::vector<int> is template: {}\n", vector_is_template);
+  Print("FixedArray<double, 5> is template: {}\n", array_is_template);
+  Print("ValueWrapper<42> is template: {}\n", value_is_template);
+  Print("DefaultedContainer<int, 100> is template: {}\n", defaulted_is_template);
+  Print("int is template: {}\n", int_is_template);
 
   constexpr auto vector_info = ctti::get_template_info<VectorInt>();
   constexpr auto array_info = ctti::get_template_info<ArrayDouble5>();
   constexpr auto value_info = ctti::get_template_info<ValueInt42>();
   constexpr auto defaulted_info = ctti::get_template_info<DefaultedIntContainer>();
 
-  std::print("Vector parameter count: {}\n", vector_info.parameter_count);
-  std::print("Array parameter count: {}\n", array_info.parameter_count);
-  std::print("Value parameter count: {}\n", value_info.parameter_count);
-  std::print("Defaulted parameter count: {}\n", defaulted_info.parameter_count);
+  Print("Vector parameter count: {}\n", vector_info.parameter_count);
+  Print("Array parameter count: {}\n", array_info.parameter_count);
+  Print("Value parameter count: {}\n", value_info.parameter_count);
+  Print("Defaulted parameter count: {}\n", defaulted_info.parameter_count);
 
-  std::print("Vector type parameter count: {}\n", vector_info.type_parameter_count);
-  std::print("Array type parameter count: {}\n", array_info.type_parameter_count);
-  std::print("Value type parameter count: {}\n", value_info.type_parameter_count);
-  std::print("Defaulted type parameter count: {}\n", defaulted_info.type_parameter_count);
+  Print("Vector type parameter count: {}\n", vector_info.type_parameter_count);
+  Print("Array type parameter count: {}\n", array_info.type_parameter_count);
+  Print("Value type parameter count: {}\n", value_info.type_parameter_count);
+  Print("Defaulted type parameter count: {}\n", defaulted_info.type_parameter_count);
 
-  std::print("Vector value parameter count: {}\n", vector_info.value_parameter_count);
-  std::print("Array value parameter count: {}\n", array_info.value_parameter_count);
-  std::print("Value value parameter count: {}\n", value_info.value_parameter_count);
-  std::print("Defaulted value parameter count: {}\n", defaulted_info.value_parameter_count);
+  Print("Vector value parameter count: {}\n", vector_info.value_parameter_count);
+  Print("Array value parameter count: {}\n", array_info.value_parameter_count);
+  Print("Value value parameter count: {}\n", value_info.value_parameter_count);
+  Print("Defaulted value parameter count: {}\n", defaulted_info.value_parameter_count);
 
-  std::print("\n");
+  Print("\n");
 }
 
 void demonstrate_template_parameters() {
-  std::print("=== Template Parameters ===\n");
+  Print("=== Template Parameters ===\n");
 
   using VectorInt = std::vector<int>;
   using ArrayDouble5 = FixedArray<double, 5>;
 
   if constexpr (ctti::variadic_type_template<VectorInt>) {
     constexpr auto vector_info = ctti::get_template_info<VectorInt>();
-    std::print("Vector type parameters:\n");
+    Print("Vector type parameters:\n");
 
     if constexpr (vector_info.type_parameter_count > 0) {
       constexpr auto param_names = vector_info.type_parameter_names();
       for (std::size_t i = 0; i < param_names.size(); ++i) {
-        std::print("  [{}]: {}\n", i, param_names[i]);
+        Print("  [{}]: {}\n", i, param_names[i]);
       }
     }
   }
 
   constexpr auto array_info = ctti::get_template_info<ArrayDouble5>();
-  std::print("Array parameter count: {}\n", array_info.parameter_count);
-  std::print("Array type parameter count: {}\n", array_info.type_parameter_count);
-  std::print("Array value parameter count: {}\n", array_info.value_parameter_count);
+  Print("Array parameter count: {}\n", array_info.parameter_count);
+  Print("Array type parameter count: {}\n", array_info.type_parameter_count);
+  Print("Array value parameter count: {}\n", array_info.value_parameter_count);
 
-  std::print("\n");
+  Print("\n");
 }
 
 void demonstrate_enum_utilities() {
-  std::print("=== Enum Utilities ===\n");
+  Print("=== Enum Utilities ===\n");
 
-  std::print("Color enum name: {}\n", ctti::enum_type_name<Color>());
-  std::print("Status enum name: {}\n", ctti::enum_type_name<Status>());
+  // Compile-time enum info
+  Print("Color enum name: {}\n", ctti::enum_type_name<Color>());
+  Print("Status enum name: {}\n", ctti::enum_type_name<Status>());
 
-  std::print("Color::Red name: {}\n", ctti::enum_name<Color, Color::Red>());
-  std::print("Color::Green name: {}\n", ctti::enum_name<Color, Color::Green>());
-  std::print("Color::Blue name: {}\n", ctti::enum_name<Color, Color::Blue>());
-
-  std::print("Status::Active name: {}\n", ctti::enum_name<Status, Status::Active>());
-  std::print("Status::Inactive name: {}\n", ctti::enum_name<Status, Status::Inactive>());
-  std::print("Status::Pending name: {}\n", ctti::enum_name<Status, Status::Pending>());
+  Print("Color::Red name (compile-time): {}\n", ctti::enum_name<Color, Color::Red>());
+  Print("Color::Green name (compile-time): {}\n", ctti::enum_name<Color, Color::Green>());
+  Print("Color::Blue name (compile-time): {}\n", ctti::enum_name<Color, Color::Blue>());
 
   constexpr auto color_info = ctti::get_enum_info<Color>();
   constexpr auto status_info = ctti::get_enum_info<Status>();
 
-  std::print("Color is scoped: {}\n", color_info.is_scoped());
-  std::print("Status is scoped: {}\n", status_info.is_scoped());
+  Print("Color is scoped: {}\n", color_info.is_scoped());
+  Print("Status is scoped: {}\n", status_info.is_scoped());
 
-  std::print("Color::Red underlying: {}\n", ctti::enum_underlying_value<Color, Color::Red>());
-  std::print("Status::Active underlying: {}\n", ctti::enum_underlying_value<Status, Status::Active>());
+  Print("Color::Red underlying: {}\n", ctti::enum_underlying_value<Color, Color::Red>());
+  Print("Color::Green underlying (runtime): {}\n", ctti::enum_underlying(Color::Green));
 
-  std::print("\n");
+  // Color is registered via ctti::enum_values<Color> specialization
+  Print("\nRegistered enum operations (using enum_values<Color>):\n");
+  Print("  Color is registered: {}\n", ctti::registered_enum<Color>);
+  Print("  Status is registered: {}\n", ctti::registered_enum<Status>);
+  Print("  enum_count<Color>(): {}\n", ctti::enum_count<Color>());
+
+  // Runtime name lookup using registered values
+  auto red_name = ctti::enum_name(Color::Red);
+  Print("  enum_name(Color::Red): {}\n", red_name.value_or("unknown"));
+
+  // String to enum conversion
+  auto green_val = ctti::enum_cast<Color>("Green");
+  Print("  enum_cast<Color>(\"Green\") valid: {}\n", green_val.has_value());
+
+  // Check if value is valid
+  Print("  enum_contains(Color::Blue): {}\n", ctti::enum_contains(Color::Blue));
+  Print("  enum_contains(invalid): {}\n", ctti::enum_contains(static_cast<Color>(999)));
+
+  // Index lookup
+  auto blue_idx = ctti::enum_index(Color::Blue);
+  Print("  enum_index(Color::Blue): {}\n", blue_idx.value_or(999));
+
+  // From underlying value
+  auto from_int = ctti::enum_from_underlying<Color>(0);
+  Print("  enum_from_underlying<Color>(0) valid: {}\n", from_int.has_value());
+
+  // Access all entries and names
+  const auto& entries = ctti::enum_entries<Color>();
+  const auto& names = ctti::enum_names<Color>();
+  Print("  All entries count: {}\n", entries.size());
+  Print("  All names count: {}\n", names.size());
+
+  // Iterate over enum values using registered enum
+  Print("  Iterating over colors (enum_for_each):\n");
+  ctti::enum_for_each<Color>([](auto index, Color value) {
+    auto name = ctti::enum_name(value);
+    Print("    [{}] {}\n", index.value, name.value_or("unknown"));
+  });
+
+  // === Manual enum_value_list approach (for unregistered enums) ===
+  Print("\nManual enum_value_list operations (for Status):\n");
+  constexpr auto status_list = ctti::make_enum_list<Status::Active, Status::Inactive, Status::Pending>();
+  Print("  Status list count: {}\n", status_list.count);
+
+  auto active_name = status_list.name_of(Status::Active);
+  Print("  Status::Active name: {}\n", active_name.value_or("unknown"));
+
+  Print("\n");
 }
 
 void demonstrate_constructor_info() {
-  std::print("=== Constructor Information ===\n");
+  Print("=== Constructor Information ===\n");
 
   constexpr auto point_ctor = ctti::get_constructor_info<Point>();
   constexpr auto vector_ctor = ctti::get_constructor_info<std::vector<int>>();
 
-  std::print("Point default constructible: {}\n", point_ctor.is_default_constructible());
-  std::print("Point copy constructible: {}\n", point_ctor.is_copy_constructible());
-  std::print("Point move constructible: {}\n", point_ctor.is_move_constructible());
-  std::print("Point is aggregate: {}\n", point_ctor.is_aggregate());
+  Print("Point default constructible: {}\n", point_ctor.is_default_constructible());
+  Print("Point copy constructible: {}\n", point_ctor.is_copy_constructible());
+  Print("Point move constructible: {}\n", point_ctor.is_move_constructible());
+  Print("Point is aggregate: {}\n", point_ctor.is_aggregate());
 
-  std::print("Vector default constructible: {}\n", vector_ctor.is_default_constructible());
-  std::print("Vector copy constructible: {}\n", vector_ctor.is_copy_constructible());
-  std::print("Vector move constructible: {}\n", vector_ctor.is_move_constructible());
-  std::print("Vector is aggregate: {}\n", vector_ctor.is_aggregate());
+  Print("Vector default constructible: {}\n", vector_ctor.is_default_constructible());
+  Print("Vector copy constructible: {}\n", vector_ctor.is_copy_constructible());
+  Print("Vector move constructible: {}\n", vector_ctor.is_move_constructible());
+  Print("Vector is aggregate: {}\n", vector_ctor.is_aggregate());
 
-  std::print("Point can construct with (double, double): {}\n", point_ctor.can_construct<double, double>());
-  std::print("Vector can construct with (size_t): {}\n", vector_ctor.can_construct<std::size_t>());
+  Print("Point can construct with (double, double): {}\n", point_ctor.can_construct<double, double>());
+  Print("Vector can construct with (size_t): {}\n", vector_ctor.can_construct<std::size_t>());
 
   if constexpr (point_ctor.can_construct<double, double>()) {
     auto constructed_point = point_ctor.construct(1.5, 2.5);
-    std::print("Constructed point: ({}, {})\n", constructed_point.x, constructed_point.y);
+    Print("Constructed point: ({}, {})\n", constructed_point.x, constructed_point.y);
   }
 
-  std::print("\n");
+  Print("\n");
 }
 
 void demonstrate_type_ids() {
-  std::print("=== Type IDs ===\n");
+  Print("=== Type IDs ===\n");
 
   auto int_id = ctti::type_id_of<int>();
   auto point_id = ctti::type_id_of<Point>();
 
-  std::print("int type ID: {} (hash: {})\n", int_id.name(), int_id.hash());
-  std::print("Point type ID: {} (hash: {})\n", point_id.name(), point_id.hash());
+  Print("int type ID: {} (hash: {})\n", int_id.name(), int_id.hash());
+  Print("Point type ID: {} (hash: {})\n", point_id.name(), point_id.hash());
 
   auto vector_id = ctti::type_id_of<std::vector<int>>();
   auto array_id = ctti::type_id_of<FixedArray<double, 5>>();
   auto value_id = ctti::type_id_of<ValueWrapper<42>>();
 
-  std::print("vector<int> type ID: {} (hash: {})\n", vector_id.name(), vector_id.hash());
-  std::print("FixedArray<double, 5> type ID: {} (hash: {})\n", array_id.name(), array_id.hash());
-  std::print("ValueWrapper<42> type ID: {} (hash: {})\n", value_id.name(), value_id.hash());
+  Print("vector<int> type ID: {} (hash: {})\n", vector_id.name(), vector_id.hash());
+  Print("FixedArray<double, 5> type ID: {} (hash: {})\n", array_id.name(), array_id.hash());
+  Print("ValueWrapper<42> type ID: {} (hash: {})\n", value_id.name(), value_id.hash());
 
   auto int_index1 = ctti::type_index_of<int>();
   auto int_index2 = ctti::type_index_of<int>();
   auto double_index = ctti::type_index_of<double>();
 
-  std::print("int index == int index: {}\n", int_index1 == int_index2);
-  std::print("int index == double index: {}\n", int_index1 == double_index);
+  Print("int index == int index: {}\n", int_index1 == int_index2);
+  Print("int index == double index: {}\n", int_index1 == double_index);
 
-  std::print("\n");
+  Print("\n");
 }
 
 void demonstrate_hash_literals() {
-  std::print("=== Hash Literals ===\n");
+  Print("=== Hash Literals ===\n");
 
   using namespace ctti::hash_literals;
 
@@ -464,9 +525,9 @@ void demonstrate_hash_literals() {
   constexpr auto world_hash = "world"_sh;
   constexpr auto template_hash = "template"_sh;
 
-  std::print("'hello' hash: {}\n", hello_hash);
-  std::print("'world' hash: {}\n", world_hash);
-  std::print("'template' hash: {}\n", template_hash);
+  Print("'hello' hash: {}\n", hello_hash);
+  Print("'world' hash: {}\n", world_hash);
+  Print("'template' hash: {}\n", template_hash);
 
   constexpr auto process_command = [](std::string_view cmd) -> std::string_view {
     switch (ctti::fnv1a_hash(cmd)) {
@@ -483,36 +544,38 @@ void demonstrate_hash_literals() {
     }
   };
 
-  std::print("Command 'start': {}\n", process_command("start"));
-  std::print("Command 'stop': {}\n", process_command("stop"));
-  std::print("Command 'template': {}\n", process_command("template"));
-  std::print("Command 'unknown': {}\n", process_command("unknown"));
+  Print("Command 'start': {}\n", process_command("start"));
+  Print("Command 'stop': {}\n", process_command("stop"));
+  Print("Command 'template': {}\n", process_command("template"));
+  Print("Command 'unknown': {}\n", process_command("unknown"));
 
-  std::print("\n");
+  Print("\n");
 }
 
 void demonstrate_inheritance() {
-  std::print("=== Inheritance Information ===\n");
+  Print("=== Inheritance Information ===\n");
 
   constexpr bool string_derives_from_basic_string = ctti::is_derived_from<std::string, std::basic_string<char>>();
   constexpr bool point_is_polymorphic = ctti::is_polymorphic<Point>();
   constexpr bool point_is_abstract = ctti::is_abstract<Point>();
   constexpr bool point_is_final = ctti::is_final<Point>();
 
-  std::print("std::string derives from std::basic_string<char>: {}\n", string_derives_from_basic_string);
-  std::print("Point is polymorphic: {}\n", point_is_polymorphic);
-  std::print("Point is abstract: {}\n", point_is_abstract);
-  std::print("Point is final: {}\n", point_is_final);
+  Print("std::string derives from std::basic_string<char>: {}\n", string_derives_from_basic_string);
+  Print("Point is polymorphic: {}\n", point_is_polymorphic);
+  Print("Point is abstract: {}\n", point_is_abstract);
+  Print("Point is final: {}\n", point_is_final);
 
   constexpr auto point_poly_info = ctti::get_polymorphism_info<Point>();
-  std::print("Point polymorphism info:\n");
-  std::print("  - is_polymorphic: {}\n", point_poly_info.is_polymorphic);
-  std::print("  - is_abstract: {}\n", point_poly_info.is_abstract);
-  std::print("  - is_final: {}\n", point_poly_info.is_final);
-  std::print("  - has_virtual_destructor: {}\n", point_poly_info.has_virtual_destructor);
+  Print("Point polymorphism info:\n");
+  Print("  - is_polymorphic: {}\n", point_poly_info.is_polymorphic);
+  Print("  - is_abstract: {}\n", point_poly_info.is_abstract);
+  Print("  - is_final: {}\n", point_poly_info.is_final);
+  Print("  - has_virtual_destructor: {}\n", point_poly_info.has_virtual_destructor);
 
-  std::print("\n");
+  Print("\n");
 }
+
+}  // namespace
 
 int main() {
   demonstrate_type_names();

@@ -2,9 +2,12 @@
 
 #include <ctti/detail/overload_resolution.hpp>
 
+#include <concepts>
 #include <functional>
-#include <iostream>
 #include <string>
+#include <tuple>
+
+namespace {
 
 // Test classes for function traits
 class TestClass {
@@ -26,13 +29,15 @@ int free_function(int a, double b) {
   return a + static_cast<int>(b);
 }
 
+}  // namespace
+
 TEST_SUITE("detail::overload_resolution") {
   TEST_CASE("function_traits_free_function") {
     using traits = ctti::detail::FunctionTraits<int(int, double)>;
 
     CHECK(std::same_as<traits::return_type, int>);
     CHECK(std::same_as<traits::args_tuple, std::tuple<int, double>>);
-    CHECK(traits::kArity == 2);
+    CHECK_EQ(traits::kArity, 2);
     CHECK(std::same_as<traits::arg_type<0>, int>);
     CHECK(std::same_as<traits::arg_type<1>, double>);
   }
@@ -42,7 +47,7 @@ TEST_SUITE("detail::overload_resolution") {
 
     CHECK(std::same_as<traits::return_type, void>);
     CHECK(std::same_as<traits::args_tuple, std::tuple<std::string, char>>);
-    CHECK(traits::kArity == 2);
+    CHECK_EQ(traits::kArity, 2);
     CHECK(std::same_as<traits::arg_type<0>, std::string>);
     CHECK(std::same_as<traits::arg_type<1>, char>);
   }
@@ -52,7 +57,7 @@ TEST_SUITE("detail::overload_resolution") {
 
     CHECK(std::same_as<traits::return_type, double>);
     CHECK(std::same_as<traits::args_tuple, std::tuple<>>);
-    CHECK(traits::kArity == 0);
+    CHECK_EQ(traits::kArity, 0);
   }
 
   TEST_CASE("function_traits_member_function") {
@@ -62,7 +67,7 @@ TEST_SUITE("detail::overload_resolution") {
     CHECK(std::same_as<traits::args_tuple, std::tuple<double>>);
     CHECK(std::same_as<traits::class_type, TestClass>);
     CHECK(std::same_as<traits::pointer_type, int (TestClass::*)(double)>);
-    CHECK(traits::kArity == 1);
+    CHECK_EQ(traits::kArity, 1);
     CHECK(traits::kIsMemberFunction);
     CHECK_FALSE(traits::kIsConst);
   }
@@ -74,7 +79,7 @@ TEST_SUITE("detail::overload_resolution") {
     CHECK(std::same_as<traits::args_tuple, std::tuple<double>>);
     CHECK(std::same_as<traits::class_type, TestClass>);
     CHECK(std::same_as<traits::pointer_type, int (TestClass::*)(double) const>);
-    CHECK(traits::kArity == 1);
+    CHECK_EQ(traits::kArity, 1);
     CHECK(traits::kIsMemberFunction);
     CHECK(traits::kIsConst);
   }
@@ -86,7 +91,7 @@ TEST_SUITE("detail::overload_resolution") {
     CHECK(std::same_as<traits::args_tuple, std::tuple<float>>);
     CHECK(std::same_as<traits::class_type, TestClass>);
     CHECK(std::same_as<traits::pointer_type, int (TestClass::*)(float) noexcept>);
-    CHECK(traits::kArity == 1);
+    CHECK_EQ(traits::kArity, 1);
     CHECK(traits::kIsMemberFunction);
     CHECK_FALSE(traits::kIsConst);
     CHECK(traits::kIsNoexcept);
@@ -99,7 +104,7 @@ TEST_SUITE("detail::overload_resolution") {
     CHECK(std::same_as<traits::args_tuple, std::tuple<float>>);
     CHECK(std::same_as<traits::class_type, TestClass>);
     CHECK(std::same_as<traits::pointer_type, int (TestClass::*)(float) const noexcept>);
-    CHECK(traits::kArity == 1);
+    CHECK_EQ(traits::kArity, 1);
     CHECK(traits::kIsMemberFunction);
     CHECK(traits::kIsConst);
     CHECK(traits::kIsNoexcept);
@@ -140,16 +145,16 @@ TEST_SUITE("detail::overload_resolution") {
 
     CHECK(std::same_as<sig1::return_type, int>);
     CHECK(std::same_as<sig1::args_tuple, std::tuple<double, char>>);
-    CHECK(sig1::kArity == 2);
+    CHECK_EQ(sig1::kArity, 2);
     CHECK(std::same_as<sig1::arg_type<0>, double>);
     CHECK(std::same_as<sig1::arg_type<1>, char>);
 
     CHECK(std::same_as<sig2::return_type, void>);
     CHECK(std::same_as<sig2::args_tuple, std::tuple<>>);
-    CHECK(sig2::kArity == 0);
+    CHECK_EQ(sig2::kArity, 0);
 
     CHECK(std::same_as<sig3::return_type, std::string>);
-    CHECK(sig3::kArity == 3);
+    CHECK_EQ(sig3::kArity, 3);
     CHECK(std::same_as<sig3::arg_type<0>, int>);
     CHECK(std::same_as<sig3::arg_type<1>, int>);
     CHECK(std::same_as<sig3::arg_type<2>, int>);
@@ -161,7 +166,7 @@ TEST_SUITE("detail::overload_resolution") {
         ctti::detail::FunctionTraits<std::string (TestClass::*)(const std::vector<int>&, std::string&&) const noexcept>;
 
     CHECK(std::same_as<complex_traits::return_type, std::string>);
-    CHECK(complex_traits::kArity == 2);
+    CHECK_EQ(complex_traits::kArity, 2);
     CHECK(std::same_as<complex_traits::arg_type<0>, const std::vector<int>&>);
     CHECK(std::same_as<complex_traits::arg_type<1>, std::string&&>);
     CHECK(complex_traits::kIsConst);
@@ -173,7 +178,7 @@ TEST_SUITE("detail::overload_resolution") {
     using ref_traits = ctti::detail::FunctionTraits<void(int&, const double&, std::string&&)>;
 
     CHECK(std::same_as<ref_traits::return_type, void>);
-    CHECK(ref_traits::kArity == 3);
+    CHECK_EQ(ref_traits::kArity, 3);
     CHECK(std::same_as<ref_traits::arg_type<0>, int&>);
     CHECK(std::same_as<ref_traits::arg_type<1>, const double&>);
     CHECK(std::same_as<ref_traits::arg_type<2>, std::string&&>);
@@ -183,7 +188,7 @@ TEST_SUITE("detail::overload_resolution") {
     using ptr_traits = ctti::detail::FunctionTraits<int*(char*, const void*)>;
 
     CHECK(std::same_as<ptr_traits::return_type, int*>);
-    CHECK(ptr_traits::kArity == 2);
+    CHECK_EQ(ptr_traits::kArity, 2);
     CHECK(std::same_as<ptr_traits::arg_type<0>, char*>);
     CHECK(std::same_as<ptr_traits::arg_type<1>, const void*>);
   }
@@ -193,7 +198,7 @@ TEST_SUITE("detail::overload_resolution") {
 
     CHECK(std::same_as<void_traits::return_type, void>);
     CHECK(std::same_as<void_traits::class_type, TestClass>);
-    CHECK(void_traits::kArity == 1);
+    CHECK_EQ(void_traits::kArity, 1);
     CHECK(std::same_as<void_traits::arg_type<0>, int>);
     CHECK(void_traits::kIsMemberFunction);
     CHECK_FALSE(void_traits::kIsConst);
@@ -202,12 +207,12 @@ TEST_SUITE("detail::overload_resolution") {
   TEST_CASE("function_traits_edge_cases") {
     // Test with function taking no parameters
     using no_param_traits = ctti::detail::FunctionTraits<void (TestClass::*)()>;
-    CHECK(no_param_traits::kArity == 0);
+    CHECK_EQ(no_param_traits::kArity, 0);
     CHECK(std::same_as<no_param_traits::args_tuple, std::tuple<>>);
 
     // Test with function taking many parameters
     using many_param_traits = ctti::detail::FunctionTraits<int(int, int, int, int, int, int, int, int)>;
-    CHECK(many_param_traits::kArity == 8);
+    CHECK_EQ(many_param_traits::kArity, 8);
     CHECK(std::same_as<many_param_traits::arg_type<7>, int>);
   }
 

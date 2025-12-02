@@ -2,15 +2,20 @@
 
 #include <ctti/detail/meta.hpp>
 
-#include <iostream>
+#include <concepts>
 #include <string>
+#include <tuple>
 #include <type_traits>
+
+namespace {
 
 template <typename T>
 struct is_floating_point_predicate : std::bool_constant<std::is_floating_point_v<T>> {};
 
 template <typename T>
 struct is_integral_predicate : std::bool_constant<std::is_integral_v<T>> {};
+
+}  // namespace
 
 TEST_SUITE("detail::meta") {
   TEST_CASE("basic_type_aliases") {
@@ -25,20 +30,20 @@ TEST_SUITE("detail::meta") {
   }
 
   TEST_CASE("integral_constants") {
-    CHECK(ctti::detail::UInt8<42>::value == 42);
-    CHECK(ctti::detail::UInt16<1000>::value == 1000);
-    CHECK(ctti::detail::UInt32<100000>::value == 100000);
-    CHECK(ctti::detail::UInt64<1000000000000ULL>::value == 1000000000000ULL);
+    CHECK_EQ(ctti::detail::UInt8<42>::value, 42);
+    CHECK_EQ(ctti::detail::UInt16<1000>::value, 1000);
+    CHECK_EQ(ctti::detail::UInt32<100000>::value, 100000);
+    CHECK_EQ(ctti::detail::UInt64<1000000000000ULL>::value, 1000000000000ULL);
 
-    CHECK(ctti::detail::Int8<-42>::value == -42);
-    CHECK(ctti::detail::Int16<-1000>::value == -1000);
-    CHECK(ctti::detail::Int32<-100000>::value == -100000);
-    CHECK(ctti::detail::Int64<-1000000000000LL>::value == -1000000000000LL);
+    CHECK_EQ(ctti::detail::Int8<-42>::value, -42);
+    CHECK_EQ(ctti::detail::Int16<-1000>::value, -1000);
+    CHECK_EQ(ctti::detail::Int32<-100000>::value, -100000);
+    CHECK_EQ(ctti::detail::Int64<-1000000000000LL>::value, -1000000000000LL);
 
-    CHECK(ctti::detail::SizeType<123>::value == 123);
-    CHECK(ctti::detail::BoolType<true>::value == true);
-    CHECK(ctti::detail::BoolType<false>::value == false);
-    CHECK(ctti::detail::CharType<'A'>::value == 'A');
+    CHECK_EQ(ctti::detail::SizeType<123>::value, 123);
+    CHECK_EQ(ctti::detail::BoolType<true>::value, true);
+    CHECK_EQ(ctti::detail::BoolType<false>::value, false);
+    CHECK_EQ(ctti::detail::CharType<'A'>::value, 'A');
   }
 
   TEST_CASE("integral_constant_concept") {
@@ -55,15 +60,15 @@ TEST_SUITE("detail::meta") {
     constexpr auto val2 = ctti::detail::GetValue<ctti::detail::BoolType<true>>();
     constexpr auto val3 = ctti::detail::GetValue<ctti::detail::CharType<'X'>>();
 
-    CHECK(val1 == 42);
-    CHECK(val2 == true);
-    CHECK(val3 == 'X');
+    CHECK_EQ(val1, 42);
+    CHECK_EQ(val2, true);
+    CHECK_EQ(val3, 'X');
   }
 
   TEST_CASE("type_list_basic") {
     using list = ctti::detail::TypeList<int, double, std::string>;
 
-    CHECK(list::kSize == 3);
+    CHECK_EQ(list::kSize, 3);
     CHECK(std::same_as<list::At<0>, int>);
     CHECK(std::same_as<list::At<1>, double>);
     CHECK(std::same_as<list::At<2>, std::string>);
@@ -72,7 +77,7 @@ TEST_SUITE("detail::meta") {
   TEST_CASE("type_list_predicates") {
     using list = ctti::detail::TypeList<int, double, float>;
 
-    CHECK(list::kSize == 3);
+    CHECK_EQ(list::kSize, 3);
 
     // Test individual type properties
     CHECK(std::is_floating_point_v<double>);
@@ -88,17 +93,17 @@ TEST_SUITE("detail::meta") {
     int count = 0;
     list::ForEach([&count](auto identity) { ++count; });
 
-    CHECK(count == 3);
+    CHECK_EQ(count, 3);
   }
 
   TEST_CASE("empty_type_list") {
     using empty_list = ctti::detail::TypeList<>;
 
-    CHECK(empty_list::kSize == 0);
+    CHECK_EQ(empty_list::kSize, 0);
 
     int count = 0;
     empty_list::ForEach([&count](auto) { ++count; });
-    CHECK(count == 0);
+    CHECK_EQ(count, 0);
   }
 
   TEST_CASE("pack_get_type") {
@@ -112,9 +117,9 @@ TEST_SUITE("detail::meta") {
     using list2 = ctti::detail::TypeList<>;
     using list3 = std::tuple<int, double, char>;
 
-    CHECK(ctti::detail::ListSize<list1>::value == 2);
-    CHECK(ctti::detail::ListSize<list2>::value == 0);
-    CHECK(ctti::detail::ListSize<list3>::value == 3);
+    CHECK_EQ(ctti::detail::ListSize<list1>::value, 2);
+    CHECK_EQ(ctti::detail::ListSize<list2>::value, 0);
+    CHECK_EQ(ctti::detail::ListSize<list3>::value, 3);
   }
 
   TEST_CASE("pair") {
@@ -145,9 +150,9 @@ TEST_SUITE("detail::meta") {
     obj.b = 2.0;
     obj.c = 'x';
 
-    CHECK(obj.a == 1);
-    CHECK(obj.b == 2.0);
-    CHECK(obj.c == 'x');
+    CHECK_EQ(obj.a, 1);
+    CHECK_EQ(obj.b, 2.0);
+    CHECK_EQ(obj.c, 'x');
   }
 
   TEST_CASE("inherit_from_type_list") {
@@ -165,8 +170,8 @@ TEST_SUITE("detail::meta") {
     obj.a = 42;
     obj.b = 3.14;
 
-    CHECK(obj.a == 42);
-    CHECK(obj.b == 3.14);
+    CHECK_EQ(obj.a, 42);
+    CHECK_EQ(obj.b, doctest::Approx(3.14));
   }
 
   TEST_CASE("cat") {
@@ -174,7 +179,7 @@ TEST_SUITE("detail::meta") {
     using list2 = ctti::detail::TypeList<char, bool>;
     using concatenated = ctti::detail::CatType<list1, list2>;
 
-    CHECK(concatenated::kSize == 4);
+    CHECK_EQ(concatenated::kSize, 4);
     CHECK(std::same_as<concatenated::At<0>, int>);
     CHECK(std::same_as<concatenated::At<1>, double>);
     CHECK(std::same_as<concatenated::At<2>, char>);
@@ -196,15 +201,15 @@ TEST_SUITE("detail::meta") {
     using idx1 = ctti::detail::IndexType<1>;
     using idx2 = ctti::detail::IndexType<2>;
 
-    CHECK(idx0::value == 0);
-    CHECK(idx1::value == 1);
-    CHECK(idx2::value == 2);
+    CHECK_EQ(idx0::value, 0);
+    CHECK_EQ(idx1::value, 1);
+    CHECK_EQ(idx2::value, 2);
   }
 
   TEST_CASE("integer_sequence") {
     using seq = ctti::detail::IntegerSequence<int, 1, 2, 3>;
 
-    CHECK(seq::kSize == 3);
+    CHECK_EQ(seq::kSize, 3);
     CHECK(std::same_as<seq::At<0>, std::integral_constant<int, 1>>);
     CHECK(std::same_as<seq::At<1>, std::integral_constant<int, 2>>);
     CHECK(std::same_as<seq::At<2>, std::integral_constant<int, 3>>);
@@ -213,7 +218,7 @@ TEST_SUITE("detail::meta") {
   TEST_CASE("index_sequence") {
     using seq = ctti::detail::IndexSequence<0, 1, 2>;
 
-    CHECK(seq::kSize == 3);
+    CHECK_EQ(seq::kSize, 3);
     CHECK(std::same_as<seq::At<0>, ctti::detail::IndexType<0>>);
     CHECK(std::same_as<seq::At<1>, ctti::detail::IndexType<1>>);
     CHECK(std::same_as<seq::At<2>, ctti::detail::IndexType<2>>);
@@ -222,7 +227,7 @@ TEST_SUITE("detail::meta") {
   TEST_CASE("string_type") {
     using str = ctti::detail::String<'h', 'i'>;
 
-    CHECK(str::kSize == 2);
+    CHECK_EQ(str::kSize, 2);
     CHECK(std::same_as<str::At<0>, std::integral_constant<char, 'h'>>);
     CHECK(std::same_as<str::At<1>, std::integral_constant<char, 'i'>>);
   }

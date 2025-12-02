@@ -2,12 +2,15 @@
 
 #include <ctti/type_id.hpp>
 
-#include <iostream>
 #include <string>
 #include <unordered_map>
 
+namespace {
+
 struct CustomStruct {};
 enum class CustomEnum { A, B };
+
+}  // namespace
 
 TEST_SUITE("type_id") {
   TEST_CASE("basic_type_id") {
@@ -15,13 +18,13 @@ TEST_SUITE("type_id") {
     auto string_id = ctti::type_id_of<std::string>();
     auto custom_id = ctti::type_id_of<CustomStruct>();
 
-    CHECK(int_id.name() == "int");
-    CHECK(string_id.name() == "std::string");
-    CHECK(custom_id.name().find("CustomStruct") != std::string_view::npos);
+    CHECK_EQ(int_id.name(), "int");
+    CHECK_EQ(string_id.name(), "std::string");
+    CHECK_EQ(custom_id.name(), "CustomStruct");
 
-    CHECK(int_id.hash() != 0);
-    CHECK(string_id.hash() != int_id.hash());
-    CHECK(custom_id.hash() != int_id.hash());
+    CHECK_NE(int_id.hash(), 0);
+    CHECK_NE(string_id.hash(), int_id.hash());
+    CHECK_NE(custom_id.hash(), int_id.hash());
   }
 
   TEST_CASE("type_id_from_object") {
@@ -33,9 +36,9 @@ TEST_SUITE("type_id") {
     auto string_id = ctti::type_id_of(str);
     auto custom_id = ctti::type_id_of(custom);
 
-    CHECK(int_id.name() == "int");
-    CHECK(string_id.name() == "std::string");
-    CHECK(custom_id.name().find("CustomStruct") != std::string_view::npos);
+    CHECK_EQ(int_id.name(), "int");
+    CHECK_EQ(string_id.name(), "std::string");
+    CHECK_EQ(custom_id.name(), "CustomStruct");
   }
 
   TEST_CASE("type_id_equality") {
@@ -43,9 +46,8 @@ TEST_SUITE("type_id") {
     auto id2 = ctti::type_id_of<int>();
     auto id3 = ctti::type_id_of<double>();
 
-    CHECK(id1 == id2);
-    CHECK_FALSE(id1 == id3);
-    CHECK(id1 != id3);
+    CHECK_EQ(id1, id2);
+    CHECK_NE(id1, id3);
   }
 
   TEST_CASE("type_id_ordering") {
@@ -57,19 +59,19 @@ TEST_SUITE("type_id") {
     auto cmp2 = double_id <=> int_id;
     auto cmp3 = int_id <=> int_id;
 
-    CHECK(cmp3 == std::strong_ordering::equal);
-    CHECK((cmp1 == std::strong_ordering::less) == (cmp2 == std::strong_ordering::greater));
+    CHECK_EQ(cmp3, std::strong_ordering::equal);
+    CHECK_EQ((cmp1 == std::strong_ordering::less), (cmp2 == std::strong_ordering::greater));
   }
 
   TEST_CASE("type_index") {
     auto int_index = ctti::type_index_of<int>();
     auto string_index = ctti::type_index_of<std::string>();
 
-    CHECK(int_index.hash() != 0);
-    CHECK(string_index.hash() != int_index.hash());
+    CHECK_NE(int_index.hash(), 0);
+    CHECK_NE(string_index.hash(), int_index.hash());
 
-    CHECK(int_index == int_index);
-    CHECK_FALSE(int_index == string_index);
+    CHECK_EQ(int_index, int_index);
+    CHECK_NE(int_index, string_index);
   }
 
   TEST_CASE("type_index_from_object") {
@@ -79,9 +81,9 @@ TEST_SUITE("type_id") {
     auto int_index = ctti::type_index_of(val);
     auto string_index = ctti::type_index_of(str);
 
-    CHECK(int_index != string_index);
-    CHECK(int_index == ctti::type_index_of<int>());
-    CHECK(string_index == ctti::type_index_of<std::string>());
+    CHECK_NE(int_index, string_index);
+    CHECK_EQ(int_index, ctti::type_index_of<int>());
+    CHECK_EQ(string_index, ctti::type_index_of<std::string>());
   }
 
   TEST_CASE("type_index_from_type_id") {
@@ -89,8 +91,8 @@ TEST_SUITE("type_id") {
     auto type_index = ctti::type_index{type_id};
     auto direct_index = ctti::type_index_of<int>();
 
-    CHECK(type_index == direct_index);
-    CHECK(type_index.hash() == type_id.hash());
+    CHECK_EQ(type_index, direct_index);
+    CHECK_EQ(type_index.hash(), type_id.hash());
   }
 
   TEST_CASE("id_from_name") {
@@ -98,9 +100,9 @@ TEST_SUITE("type_id") {
     auto index2 = ctti::id_from_name("double");
     auto index3 = ctti::id_from_name("int");
 
-    CHECK(index1 == index3);
-    CHECK_FALSE(index1 == index2);
-    CHECK(index1.hash() != 0);
+    CHECK_EQ(index1, index3);
+    CHECK_NE(index1, index2);
+    CHECK_NE(index1.hash(), 0);
   }
 
   TEST_CASE("type_id_in_container") {
@@ -110,10 +112,10 @@ TEST_SUITE("type_id") {
     type_map[ctti::type_id_of<double>()] = "floating";
     type_map[ctti::type_id_of<std::string>()] = "string";
 
-    CHECK(type_map.size() == 3);
-    CHECK(type_map[ctti::type_id_of<int>()] == "integer");
-    CHECK(type_map[ctti::type_id_of<double>()] == "floating");
-    CHECK(type_map[ctti::type_id_of<std::string>()] == "string");
+    CHECK_EQ(type_map.size(), 3);
+    CHECK_EQ(type_map[ctti::type_id_of<int>()], "integer");
+    CHECK_EQ(type_map[ctti::type_id_of<double>()], "floating");
+    CHECK_EQ(type_map[ctti::type_id_of<std::string>()], "string");
   }
 
   TEST_CASE("type_index_in_container") {
@@ -123,19 +125,19 @@ TEST_SUITE("type_id") {
     index_map[ctti::type_index_of<double>()] = "floating";
     index_map[ctti::type_index_of<CustomStruct>()] = "custom";
 
-    CHECK(index_map.size() == 3);
-    CHECK(index_map[ctti::type_index_of<int>()] == "integer");
-    CHECK(index_map[ctti::type_index_of<double>()] == "floating");
-    CHECK(index_map[ctti::type_index_of<CustomStruct>()] == "custom");
+    CHECK_EQ(index_map.size(), 3);
+    CHECK_EQ(index_map[ctti::type_index_of<int>()], "integer");
+    CHECK_EQ(index_map[ctti::type_index_of<double>()], "floating");
+    CHECK_EQ(index_map[ctti::type_index_of<CustomStruct>()], "custom");
   }
 
   TEST_CASE("enum_type_id") {
     auto enum_id = ctti::type_id_of<CustomEnum>();
     auto enum_index = ctti::type_index_of<CustomEnum>();
 
-    CHECK(enum_id.name().find("CustomEnum") != std::string_view::npos);
-    CHECK(enum_index.hash() != 0);
-    CHECK(enum_index.hash() == enum_id.hash());
+    CHECK_EQ(enum_id.name(), "CustomEnum");
+    CHECK_NE(enum_index.hash(), 0);
+    CHECK_EQ(enum_index.hash(), enum_id.hash());
   }
 
   TEST_CASE("cv_qualified_types") {
@@ -143,9 +145,9 @@ TEST_SUITE("type_id") {
     auto volatile_id = ctti::type_id_of<volatile int>();
     auto plain_id = ctti::type_id_of<int>();
 
-    CHECK(const_id != plain_id);
-    CHECK(volatile_id != plain_id);
-    CHECK(const_id != volatile_id);
+    CHECK_NE(const_id, plain_id);
+    CHECK_NE(volatile_id, plain_id);
+    CHECK_NE(const_id, volatile_id);
   }
 
   TEST_CASE("pointer_types") {
@@ -153,8 +155,15 @@ TEST_SUITE("type_id") {
     auto ref_id = ctti::type_id_of<int&>();
     auto value_id = ctti::type_id_of<int>();
 
-    CHECK(ptr_id != value_id);
-    CHECK(ref_id != value_id);
-    CHECK(ptr_id != ref_id);
+    CHECK_NE(ptr_id, value_id);
+    CHECK_NE(ref_id, value_id);
+    CHECK_NE(ptr_id, ref_id);
+  }
+
+  TEST_CASE("type_id_names") {
+    CHECK_EQ(ctti::type_id_of<int*>().name(), "int*");
+    CHECK_EQ(ctti::type_id_of<int&>().name(), "int&");
+    CHECK_EQ(ctti::type_id_of<const int>().name(), "const int");
+    CHECK_EQ(ctti::type_id_of<volatile int>().name(), "volatile int");
   }
 }

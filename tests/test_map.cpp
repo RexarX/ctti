@@ -3,8 +3,9 @@
 #include <ctti/map.hpp>
 #include <ctti/symbol.hpp>
 
-#include <iostream>
 #include <string>
+
+namespace {
 
 struct Source {
   int value = 42;
@@ -17,6 +18,8 @@ struct Sink {
   std::string name = "sink";
   bool active = false;
 };
+
+}  // namespace
 
 TEST_SUITE("map") {
   TEST_CASE("basic_mapping") {
@@ -31,8 +34,8 @@ TEST_SUITE("map") {
     ctti::map<value_src_symbol, value_dst_symbol>(src, dst);
     ctti::map<name_src_symbol, name_dst_symbol>(src, dst);
 
-    CHECK(dst.value == 42);
-    CHECK(dst.name == "source");
+    CHECK_EQ(dst.value, 42);
+    CHECK_EQ(dst.name, "source");
     CHECK_FALSE(dst.active);  // Should remain unchanged
   }
 
@@ -52,7 +55,7 @@ TEST_SUITE("map") {
     };
 
     ctti::map<value_src_symbol, value_dst_symbol>(src, dst, custom_mapper);
-    CHECK(dst.value == 1042);  // 42 + 1000
+    CHECK_EQ(dst.value, 1042);  // 42 + 1000
   }
 
   TEST_CASE("symbol_mapping_class") {
@@ -65,7 +68,7 @@ TEST_SUITE("map") {
     auto mapping = ctti::make_mapping<value_src_symbol, value_dst_symbol>();
     mapping(src, dst);
 
-    CHECK(dst.value == 42);
+    CHECK_EQ(dst.value, 42);
   }
 
   TEST_CASE("multiple_mappings") {
@@ -90,8 +93,8 @@ TEST_SUITE("map") {
 
     ctti::map(src, dst, value_mapping, name_mapping, custom_mapping);
 
-    CHECK(dst.value == 42);
-    CHECK(dst.name == "source");
+    CHECK_EQ(dst.value, 42);
+    CHECK_EQ(dst.name, "source");
     CHECK(dst.active);  // price > 50.0
   }
 }
